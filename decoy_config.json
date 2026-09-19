@@ -1,0 +1,13 @@
+{
+    "active_package_id": "premium",
+    "package_name": "Paket Premium VIP",
+    "package_expired_at": 1792376512,
+    "is_custom_expired": false,
+    "active_decoy": "decoy2",
+    "allowed_decoys": [
+        "main",
+        "decoy2",
+        "decoy3"
+    ],
+    "updated_at": 1789784512
+}

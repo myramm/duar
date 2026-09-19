@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kebijakan Privasi — DUAR</title>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css?v={{ cache_buster|default('1') }}">
+    <style>
+        .privacy-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.25rem 4rem 1.25rem;
+        }
+        .privacy-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2.25rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+        @media (max-width: 576px) {
+            .privacy-card {
+                padding: 1.5rem 1.2rem;
+            }
+        }
+        .privacy-section-title {
+            color: var(--text-bright);
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .privacy-section-title i {
+            color: var(--accent-cyan);
+        }
+        .privacy-text {
+            color: var(--text-main);
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+        .privacy-highlight-box {
+            background-color: var(--bg-darker);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+            font-size: 0.88rem;
+            color: var(--text-main);
+        }
+        .badge-scope {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: rgba(57, 197, 207, 0.12);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(57, 197, 207, 0.3);
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+
+    <!-- Top Navigation Bar -->
+    <header class="app-header position-sticky top-0 z-3">
+        <div class="header-inner px-3 py-2 d-flex align-items-center justify-content-between">
+            <a class="app-brand text-decoration-none d-flex align-items-center gap-2" href="/">
+                <span class="brand-badge"><i class="bi bi-fire text-danger"></i></span>
+                <span class="brand-title fw-bold text-white tracking-wider">DUAR</span>
+            </a>
+            <a href="/" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 text-light border-secondary">
+                <i class="bi bi-arrow-left"></i>
+                <span>Kembali ke Web</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="privacy-container">
+        <div class="privacy-card">
+            <!-- Header Header -->
+            <div class="border-bottom border-secondary pb-3 mb-4">
+                <div class="d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-pill bg-darker border border-secondary text-cyan fs-8 mb-2">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Kebijakan Privasi & Keamanan Data</span>
+                </div>
+                <h1 class="h3 fw-bold text-white mb-2">Kebijakan Privasi (Privacy Policy)</h1>
+                <p class="text-muted fs-8 mb-0">
+                    Terakhir Diperbarui: <strong>18 September 2026</strong>
+                </p>
+            </div>
+
+            <!-- 1. Pendahuluan -->
+            <div class="privacy-section-title">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>1. Pendahuluan</span>
+            </div>
+            <p class="privacy-text">
+                Selamat datang di <strong>DUAR</strong> ("kami", "aplikasi"). Kami sangat menghargai dan berkomitmen untuk melindungi privasi serta keamanan data pribadi pengguna kami. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi informasi Anda saat menggunakan web app <strong>DUAR</strong>, termasuk integrasi dengan layanan Google OAuth dan Google Drive AppData Cloud Storage.
+            </p>
+
+            <!-- 2. Data yang Kami Kumpulkan -->
+            <div class="privacy-section-title">
+                <i class="bi bi-collection-fill"></i>
+                <span>2. Informasi yang Kami Kumpulkan</span>
+            </div>
+            <p class="privacy-text">
+                Kami hanya mengumpulkan data yang benar-benar dibutuhkan untuk menyediakan dan mempersonalisasi fungsi aplikasi:
+            </p>
+            <ul class="privacy-text ps-3">
+                <li class="mb-2">
+                    <strong>Informasi Akun Google:</strong> Ketika Anda memilih untuk masuk menggunakan Google (Google Sign-In), kami menerima informasi profil publik dasar yang mencakup <em>Nama Lengkap</em>, <em>Alamat Email</em>, dan <em>Foto Profil</em> (Google ID token). Informasi ini digunakan semata-mata untuk mengidentifikasi akun Anda dan menampilkan profil pada UI Account Selector.
+                </li>
+                <li class="mb-2">
+                    <strong>Data Konfigurasi & Preferensi Aplikasi:</strong> Data seperti daftar paket favorit/bookmark, riwayat transaksi, dan preferensi antarmuka pengguna.
+                </li>
+            </ul>
+
+            <!-- 3. Penggunaan Izin Google OAuth & Google Drive -->
+            <div class="privacy-section-title">
+                <i class="bi bi-google"></i>
+                <span>3. Penggunaan Izin Google OAuth & Google Drive (AppData)</span>
+            </div>
+            <p class="privacy-text">
+                Aplikasi kami menggunakan cakupan izin (scopes) Google OAuth resmi berikut:
+            </p>
+            <div class="mb-3">
+                <div class="mb-2">
+                    <span class="badge-scope">openid email profile</span>
+                </div>
+                <p class="privacy-text text-muted fs-8 mb-3">
+                    Digunakan untuk memverifikasi identitas pengguna secara aman, menampilkan akun aktif, dan mendukung fitur Multi-Account Picker tanpa menyimpan kata sandi Anda.
+                </p>
+
+                <div class="mb-2">
+                    <span class="badge-scope">https://www.googleapis.com/auth/drive.appdata</span>
+                </div>
+                <p class="privacy-text text-muted fs-8 mb-2">
+                    Digunakan khusus untuk membaca dan menulis file konfigurasi terenkripsi (<code>duar-user-data.json</code>) pada folder khusus aplikasi (<em>Application Data Folder</em>) di Google Drive pribadi milik Anda sendiri.
+                </p>
+            </div>
+
+            <div class="privacy-highlight-box">
+                <strong class="text-white d-block mb-1"><i class="bi bi-shield-lock-fill text-cyan me-1"></i> Penting mengenai Akses Google Drive:</strong>
+                DUAR <strong>TIDAK memiliki akses</strong> ke dokumen, foto, file pribadi, atau folder umum di Google Drive Anda. Izin <code>drive.appdata</code> hanya mengizinkan aplikasi mengakses folder data tersembunyi milik DUAR itu sendiri sehingga file Anda lainnya 100% aman dan tidak tersentuh.
+            </div>
+
+            <!-- 4. Google API Services User Data Policy Compliance -->
+            <div class="privacy-section-title">
+                <i class="bi bi-patch-check-fill"></i>
+                <span>4. Kepatuhan Kebijakan Pengguna Layanan Google API</span>
+            </div>
+            <p class="privacy-text">
+                Penggunaan dan transfer informasi yang diterima DUAR dari Google API ke aplikasi lain akan selalu mematuhi <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" class="text-cyan text-decoration-none">Google API Services User Data Policy</a>, termasuk persyaratan <strong>Penggunaan Terbatas (Limited Use requirements)</strong>:
+            </p>
+            <ul class="privacy-text ps-3">
+                <li class="mb-1.5">Kami tidak menjual data pribadi atau data Google Anda kepada pihak ketiga mana pun.</li>
+                <li class="mb-1.5">Kami tidak menggunakan data Google Anda untuk tujuan periklanan atau penargetan iklan.</li>
+                <li class="mb-1.5">Kami tidak mentransfer atau menggunakan data Google pengguna untuk melatih model kecerdasan buatan (Artificial Intelligence / Machine Learning) umum.</li>
+                <li class="mb-1.5">Akses data dibatasi hanya untuk fungsi aplikasi yang diminta secara langsung oleh pengguna.</li>
+            </ul>
+
+            <!-- 5. Penyimpanan dan Keamanan Data -->
+            <div class="privacy-section-title">
+                <i class="bi bi-lock-fill"></i>
+                <span>5. Penyimpanan dan Keamanan Data</span>
+            </div>
+            <p class="privacy-text">
+                Keamanan informasi Anda adalah prioritas utama kami:
+            </p>
+            <ul class="privacy-text ps-3">
+                <li class="mb-1.5">
+                    <strong>Penyimpanan Sisi Pengguna (Client-Side Storage):</strong> Data sesi dan token disimpan di penyimpanan aman lokal peramban (<code>localStorage</code> / <code>sessionStorage</code>) dan disinkronkan ke Google Drive pribadi Anda.
+                </li>
+                <li class="mb-1.5">
+                    <strong>Enkripsi Transport (HTTPS):</strong> Seluruh pertukaran data antara peramban Anda, server DUAR, dan Google API dilindungi menggunakan enkripsi standar industri Transport Layer Security (TLS/HTTPS).
+                </li>
+            </ul>
+
+            <!-- 6. Hak Pengguna & Penghapusan Data -->
+            <div class="privacy-section-title">
+                <i class="bi bi-person-x-fill"></i>
+                <span>6. Hak dan Pengendalian Data Pengguna</span>
+            </div>
+            <p class="privacy-text">
+                Anda memiliki kendali penuh atas data dan akun Anda:
+            </p>
+            <ul class="privacy-text ps-3">
+                <li class="mb-1.5">
+                    <strong>Keluar & Hapus Akun Lokal:</strong> Anda dapat keluar kapan saja atau menghapus akun dari daftar pemilih akun DUAR melalui tombol profil akun di aplikasi.
+                </li>
+                <li class="mb-1.5">
+                    <strong>Mencabut Akses Google OAuth:</strong> Anda dapat mencabut izin aplikasi DUAR kapan saja langsung dari pengaturan keamanan Google Anda melalui <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" class="text-cyan text-decoration-none">Google Account Third-party apps with account access</a>.
+                </li>
+            </ul>
+
+            <!-- 7. Perubahan Kebijakan Privasi -->
+            <div class="privacy-section-title">
+                <i class="bi bi-clock-history"></i>
+                <span>7. Perubahan pada Kebijakan Privasi</span>
+            </div>
+            <p class="privacy-text">
+                Kami dapat memperbarui Kebijakan Privasi ini dari waktu ke waktu untuk menyesuaikan dengan pembaruan fitur atau ketentuan hukum yang berlaku. Setiap pembaruan akan dipublikasikan pada halaman ini dengan tanggal pembaruan terbaru.
+            </p>
+
+            <!-- 8. Kontak Kami -->
+            <div class="privacy-section-title">
+                <i class="bi bi-envelope-at-fill"></i>
+                <span>8. Kontak Kami</span>
+            </div>
+            <p class="privacy-text mb-4">
+                Jika Anda memiliki pertanyaan, saran, atau kendala terkait Kebijakan Privasi ini dan penanganan data Anda, silakan hubungi kami melalui:
+            </p>
+            <div class="p-3 bg-darker rounded border border-secondary d-flex align-items-center gap-3">
+                <div class="bg-surface rounded-circle p-2.5 text-cyan fs-4">
+                    <i class="bi bi-chat-dots-fill"></i>
+                </div>
+                <div>
+                    <div class="text-white fw-semibold">Dukungan Pengembang DUAR</div>
+                    <div class="text-muted fs-8 font-monospace">Website: <a href="https://duar.rbot.eu.cc" class="text-cyan text-decoration-none">https://duar.rbot.eu.cc</a></div>
+                </div>
+            </div>
+
+            <!-- Footer Action -->
+            <div class="text-center mt-5 pt-3 border-top border-secondary">
+                <a href="/" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
+                    <i class="bi bi-house-door-fill me-1"></i> Kembali ke Dashboard DUAR
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Copyright -->
+    <footer class="text-center text-muted fs-9 py-3">
+        <div>&copy; 2026 DUAR. Seluruh hak cipta dilindungi undang-undang.</div>
+        <div class="mt-1">
+            <a href="/" class="text-secondary text-decoration-none hover-text-cyan me-3">Home</a>
+            <a href="/privacy" class="text-cyan text-decoration-none">Kebijakan Privasi</a>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

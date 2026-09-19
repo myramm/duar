@@ -30,10 +30,17 @@ cd me-cli-sunset
 ```
 bash setup.sh
 ```
-6. Run the script
+6. Run the CLI
 ```
 python main.py
 ```
+
+# How to run Web Interface
+1. Start the web server
+```
+python web_server.py
+```
+2. Open your browser at `http://localhost:5000` (or `http://<ip-server>:5000`)
 
 # Info
 

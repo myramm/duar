@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="id" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUAR — Web Client</title>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Identity Services (Official GIS) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css?v={{ cache_buster|default('1') }}">
+</head>
+<body class="bg-dark text-light">
+
+    <!-- ACCOUNT PICKER OVERLAY (Mobile-First Native Account Selector Screen) -->
+    <div id="accountPickerOverlay" class="account-picker-overlay d-none">
+        <div class="account-picker-container">
+            <div class="account-picker-card">
+                <!-- Header -->
+                <div class="account-picker-header text-center">
+                    <div class="brand-badge-circle mx-auto mb-2.5">
+                        <i class="bi bi-fire text-danger fs-3"></i>
+                    </div>
+                    <h3 class="account-picker-title mb-1">Pilih akun</h3>
+                    <p class="account-picker-subtitle mb-0">untuk melanjutkan ke <span class="text-white fw-semibold">DUAR</span></p>
+                </div>
+
+                <!-- Scrollable Account List -->
+                <div class="account-picker-list-wrapper">
+                    <div id="accountPickerList" class="account-picker-list">
+                        <!-- Dynamically populated from GoogleAuth -->
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="account-picker-divider my-2"></div>
+
+                <!-- Add Account Action -->
+                <div class="account-picker-actions">
+                    <button type="button" class="btn-add-account w-100 d-flex align-items-center justify-content-center gap-2" onclick="window.GoogleAuth.requestGoogleLogin()">
+                        <i class="bi bi-person-plus-fill text-cyan fs-5"></i>
+                        <span class="fw-semibold fs-7 text-light">Tambahkan akun</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="account-picker-footer text-center mt-3">
+                <div class="d-inline-flex align-items-center justify-content-center gap-1.5 fs-9 text-muted px-3 py-1.5 rounded-pill bg-darker border border-secondary mb-2">
+                    <i class="bi bi-shield-lock-fill text-success"></i>
+                    <span>Google OAuth & Drive AppData Cloud Storage</span>
+                </div>
+                <div>
+                    <a href="/privacy" class="text-secondary text-decoration-none fs-9 hover-text-cyan">
+                        <i class="bi bi-shield-check me-1"></i>Kebijakan Privasi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile App Header (Top Sticky Bar) -->
+    <header class="app-header">
+        <div class="header-inner">
+            <!-- Left: Drawer Toggle & Brand -->
+            <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+                <button class="btn-touch-icon" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas" aria-label="Buka Menu">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+                <a class="app-brand text-decoration-none" href="#dashboard" onclick="switchTab('dashboard')">
+                    <span class="brand-badge"><i class="bi bi-fire"></i></span>
+                    <span class="brand-title">DUAR</span>
+                </a>
+            </div>
+
+            <!-- Center/Right: Google Account & XL Account Badge -->
+            <div class="d-flex align-items-center gap-1.5 ms-auto">
+                <!-- Google Account Profile Badge -->
+                <div id="googleAccountHeaderBadge" class="d-flex align-items-center"></div>
+
+                <!-- XL Phone & Balance Card -->
+                <div class="header-account-card d-flex align-items-center gap-1.5" id="navUserBadge" data-bs-toggle="modal" data-bs-target="#accountsModal" role="button" title="Kelola Akun XL">
+                    <span class="status-indicator active" id="userStatusDot"></span>
+                    <div class="account-card-info d-flex flex-column text-start">
+                        <span class="account-card-number font-monospace text-light" id="navUserPhone">-</span>
+                        <span class="account-card-balance text-success font-monospace" id="navUserBalance">Rp 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Quick Actions -->
+            <div class="d-flex align-items-center gap-0.5 flex-shrink-0">
+                <button class="btn-touch-icon text-muted" onclick="refreshStatus()" title="Refresh Status" aria-label="Refresh Data">
+                    <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+                </button>
+                <button class="btn-touch-icon text-primary" data-bs-toggle="modal" data-bs-target="#accountsModal" title="Kelola Akun XL" aria-label="Daftar Akun XL">
+                    <i class="bi bi-sim-fill"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="d-flex flex-grow-1 main-wrapper">
+        <!-- Sidebar Navigation (Desktop) -->
+        <aside class="sidebar d-none d-lg-flex">
+            <ul class="nav nav-pills flex-column gap-1 mb-auto">
+                <li class="nav-item">
+                    <a href="#dashboard" class="nav-link active d-flex align-items-center gap-2" data-tab="dashboard">
+                        <i class="bi bi-speedometer2"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#packages" class="nav-link d-flex align-items-center gap-2" data-tab="packages">
+                        <i class="bi bi-box-seam"></i> <span>Paket Saya</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#hot" class="nav-link d-flex align-items-center gap-2" data-tab="hot">
+                        <i class="bi bi-fire text-danger"></i> <span>Paket HOT</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#family" class="nav-link d-flex align-items-center gap-2" data-tab="family">
+                        <i class="bi bi-search"></i> <span>Family Code</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#scan" class="nav-link d-flex align-items-center gap-2 text-warning" data-tab="scan">
+                        <i class="bi bi-qr-code-scan"></i> <span>Scan Family Code</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#generate" class="nav-link d-flex align-items-center gap-2 text-info" data-tab="generate">
+                        <i class="bi bi-fingerprint"></i> <span>Generate Famcode</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#store" class="nav-link d-flex align-items-center gap-2" data-tab="store">
+                        <i class="bi bi-shop"></i> <span>Store Browser</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#transactions" class="nav-link d-flex align-items-center gap-2" data-tab="transactions">
+                        <i class="bi bi-receipt"></i> <span>Riwayat Transaksi</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#famplan" class="nav-link d-flex align-items-center gap-2" data-tab="famplan">
+                        <i class="bi bi-people"></i> <span>Akrab & Circle</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#tools" class="nav-link d-flex align-items-center gap-2" data-tab="tools">
+                        <i class="bi bi-tools"></i> <span>Tools & Dukcapil</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#bookmarks" class="nav-link d-flex align-items-center gap-2" data-tab="bookmarks">
+                        <i class="bi bi-bookmark-star"></i> <span>Bookmarks</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#decoy" class="nav-link d-flex align-items-center gap-2 text-cyan" data-tab="decoy">
+                        <i class="bi bi-shield-shaded"></i> <span>DEC0Y Manager</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#config" class="nav-link d-flex align-items-center gap-2 text-warning" data-tab="config">
+                        <i class="bi bi-gear-wide-connected"></i> <span>Decoy & HOT Data</span>
+                    </a>
+                </li>
+                <li class="nav-item mt-2 pt-2 border-top">
+                    <a href="#terminal" class="nav-link d-flex align-items-center gap-2 text-cyan" data-tab="terminal">
+                        <i class="bi bi-terminal"></i> <span>Command Runner</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer pt-2 border-top text-muted fs-9 font-monospace">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Core: v8.9.0</span>
+                    <span class="badge bg-success-subtle text-success">ONLINE</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Mobile (Offcanvas) -->
+        <div class="offcanvas offcanvas-start bg-surface text-light" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+            <div class="offcanvas-header border-bottom py-2.5 px-3">
+                <h6 class="offcanvas-title fw-bold m-0" id="sidebarOffcanvasLabel"><i class="bi bi-fire text-danger me-2"></i>DUAR WEB CLIENT</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body p-2.5">
+                <ul class="nav nav-pills flex-column gap-1">
+                    <li class="nav-item"><a href="#dashboard" class="nav-link active" data-tab="dashboard" data-bs-dismiss="offcanvas"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
+                    <li class="nav-item"><a href="#packages" class="nav-link" data-tab="packages" data-bs-dismiss="offcanvas"><i class="bi bi-box-seam me-2"></i> Paket Saya</a></li>
+                    <li class="nav-item"><a href="#hot" class="nav-link" data-tab="hot" data-bs-dismiss="offcanvas"><i class="bi bi-fire text-danger me-2"></i> Paket HOT</a></li>
+                    <li class="nav-item"><a href="#family" class="nav-link" data-tab="family" data-bs-dismiss="offcanvas"><i class="bi bi-search me-2"></i> Family Code</a></li>
+                    <li class="nav-item"><a href="#scan" class="nav-link text-warning" data-tab="scan" data-bs-dismiss="offcanvas"><i class="bi bi-qr-code-scan me-2"></i> Scan Family Code</a></li>
+                    <li class="nav-item"><a href="#generate" class="nav-link text-info" data-tab="generate" data-bs-dismiss="offcanvas"><i class="bi bi-fingerprint me-2"></i> Generate Famcode</a></li>
+                    <li class="nav-item"><a href="#store" class="nav-link" data-tab="store" data-bs-dismiss="offcanvas"><i class="bi bi-shop me-2"></i> Store Browser</a></li>
+                    <li class="nav-item"><a href="#transactions" class="nav-link" data-tab="transactions" data-bs-dismiss="offcanvas"><i class="bi bi-receipt me-2"></i> Riwayat Transaksi</a></li>
+                    <li class="nav-item"><a href="#famplan" class="nav-link" data-tab="famplan" data-bs-dismiss="offcanvas"><i class="bi bi-people me-2"></i> Akrab & Circle</a></li>
+                    <li class="nav-item"><a href="#tools" class="nav-link" data-tab="tools" data-bs-dismiss="offcanvas"><i class="bi bi-tools me-2"></i> Tools & Dukcapil</a></li>
+                    <li class="nav-item"><a href="#bookmarks" class="nav-link" data-tab="bookmarks" data-bs-dismiss="offcanvas"><i class="bi bi-bookmark-star me-2"></i> Bookmarks</a></li>
+                    <li class="nav-item"><a href="#decoy" class="nav-link text-cyan" data-tab="decoy" data-bs-dismiss="offcanvas"><i class="bi bi-shield-shaded me-2"></i> DEC0Y Manager</a></li>
+                    <li class="nav-item"><a href="#config" class="nav-link text-warning" data-tab="config" data-bs-dismiss="offcanvas"><i class="bi bi-gear-wide-connected me-2"></i> Decoy & HOT Data</a></li>
+                    <li class="nav-item mt-2 pt-2 border-top"><a href="#terminal" class="nav-link text-cyan" data-tab="terminal" data-bs-dismiss="offcanvas"><i class="bi bi-terminal me-2"></i> Command Runner</a></li>
+                    <li class="nav-item"><a href="/privacy" class="nav-link text-muted" target="_blank"><i class="bi bi-shield-check me-2"></i> Kebijakan Privasi</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+
+            <!-- TAB: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="row g-2 g-md-3 mb-2.5 mb-md-3">
+                    <!-- Profile Card -->
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card-compact">
+                            <div>
+                                <div class="stat-label">Nomor Aktif</div>
+                                <div class="stat-value text-primary fs-6 fs-md-5 text-truncate" id="dashPhone">-</div>
+                            </div>
+                            <div class="stat-meta d-flex align-items-center gap-1 mt-1.5">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-9" id="dashType">-</span>
+                                <span class="text-muted fs-9 font-monospace text-truncate" id="dashSubId">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Balance Card -->
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card-compact">
+                            <div>
+                                <div class="stat-label" id="dashBalanceLabel">Sisa Saldo</div>
+                                <div class="stat-value text-success fs-6 fs-md-5 text-truncate" id="dashBalance">Rp 0</div>
+                            </div>
+                            <div class="stat-meta text-truncate mt-1.5" id="dashExpContainer">
+                                <i class="bi bi-clock me-1"></i>s/d: <span id="dashExp" class="text-light">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Points & Tier Card -->
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card-compact">
+                            <div>
+                                <div class="stat-label">Poin & Tier</div>
+                                <div class="stat-value text-warning fs-6 fs-md-5 text-truncate" id="dashPoints">- Poin</div>
+                            </div>
+                            <div class="stat-meta text-truncate mt-1.5">
+                                <i class="bi bi-award me-1"></i>Tier: <span id="dashTier" class="text-light fw-semibold">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Accounts Count Card -->
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card-compact">
+                            <div>
+                                <div class="stat-label">Akun Tersimpan</div>
+                                <div class="stat-value text-info fs-6 fs-md-5 text-truncate" id="dashAccountsCount">0 Akun</div>
+                            </div>
+                            <div class="stat-meta mt-1.5">
+                                <button class="btn btn-xs btn-outline-info rounded-pill py-0 px-2" data-bs-toggle="modal" data-bs-target="#accountsModal">
+                                    <i class="bi bi-arrow-left-right me-1"></i>Kelola
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Grid -->
+                <div class="card bg-surface border mb-2.5 mb-md-3">
+                    <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex align-items-center justify-content-between">
+                        <span class="fw-bold fs-8"><i class="bi bi-lightning-charge-fill text-warning me-1.5"></i>Quick Actions</span>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        <div class="row g-2">
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="quick-action-card" onclick="switchTab('packages')">
+                                    <div class="action-icon-wrap bg-primary-subtle text-primary">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="action-title text-truncate">Paket Saya</div>
+                                        <div class="action-desc text-truncate">Cek kuota aktif</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="quick-action-card" onclick="switchTab('hot')">
+                                    <div class="action-icon-wrap bg-danger-subtle text-danger">
+                                        <i class="bi bi-fire"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="action-title text-truncate">Paket HOT</div>
+                                        <div class="action-desc text-truncate">Promo tembak</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="quick-action-card" onclick="switchTab('scan')">
+                                    <div class="action-icon-wrap bg-warning-subtle text-warning">
+                                        <i class="bi bi-qr-code-scan"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="action-title text-truncate">Scan Family</div>
+                                        <div class="action-desc text-truncate">Bulk Scanner</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="quick-action-card" onclick="switchTab('family')">
+                                    <div class="action-icon-wrap bg-info-subtle text-info">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="action-title text-truncate">Family Code</div>
+                                        <div class="action-desc text-truncate">Inspect UUID</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="quick-action-card" onclick="switchTab('decoy')">
+                                    <div class="action-icon-wrap bg-cyan-subtle text-cyan">
+                                        <i class="bi bi-shield-shaded"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="action-title text-truncate">DEC0Y</div>
+                                        <div class="action-desc text-truncate">Entitlement</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="quick-action-card" onclick="switchTab('bookmarks')">
+                                    <div class="action-icon-wrap bg-warning-subtle text-warning">
+                                        <i class="bi bi-lightning-charge-fill"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="action-title text-truncate">1-Klik Beli</div>
+                                        <div class="action-desc text-truncate">Auto purchase</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- DEC0Y Entitlement & Status Card -->
+                <div class="card bg-surface border mb-2.5 mb-md-3" id="dashDecoyCard">
+                    <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-cyan-subtle text-cyan font-monospace fs-9 fw-bold"><i class="bi bi-shield-shaded me-1"></i>DEC0Y</span>
+                            <span class="fw-bold fs-8 text-light">Status Jalur Decoy & Entitlement</span>
+                        </div>
+                        <button class="btn btn-xs btn-outline-info rounded-pill" onclick="switchTab('decoy')">
+                            <i class="bi bi-sliders me-1"></i>Kelola Decoy
+                        </button>
+                    </div>
+                    <div class="card-body p-2.5 p-md-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-md-5">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="decoy-active-badge-icon bg-cyan-subtle text-cyan p-2.5 rounded-circle flex-shrink-0">
+                                        <i class="bi bi-shield-check fs-4"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-muted fs-9 text-uppercase tracking-wider">Active Decoy Saat Ini</div>
+                                        <div class="fs-6 fw-bold text-light d-flex align-items-center gap-2 text-truncate" id="dashActiveDecoyName">
+                                            <span id="dashActiveDecoyTitle">Decoy Utama</span>
+                                            <span class="badge-decoy-active fs-9" id="dashActiveDecoyBadge"><span class="pulse-dot"></span>ACTIVE</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="stat-meta">
+                                    <div class="text-muted fs-9">Paket Entitlement:</div>
+                                    <div class="text-light fs-8 fw-semibold text-truncate" id="dashActivePackageName">Paket Premium VIP</div>
+                                    <div class="text-muted fs-9" id="dashDecoyAvailableCount">3 dari 4 Decoy Tersedia</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3 text-md-end">
+                                <button class="btn btn-sm btn-primary w-100 w-md-auto font-monospace fs-8" onclick="switchTab('decoy')">
+                                    <i class="bi bi-arrow-left-right me-1"></i> Ganti Decoy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1-Click Auto Buy Presets Quick Access -->
+                <div class="card bg-surface border mb-3 mb-md-4">
+                    <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex align-items-center justify-content-between">
+                        <span class="fw-bold fs-7"><i class="bi bi-lightning-charge-fill text-warning me-1.5"></i>1-Click Auto Buy Presets</span>
+                        <div class="d-flex gap-1.5">
+                            <button class="btn btn-xs btn-outline-warning" onclick="openAddPresetModal()">
+                                <i class="bi bi-plus-lg me-1"></i>+ Tambah Famcode
+                            </button>
+                            <button class="btn btn-xs btn-outline-secondary" onclick="loadDashboardPresets()" title="Refresh Presets">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-2.5 p-md-3">
+                        <div id="dashPresetsContainer" class="row g-2">
+                            <div class="col-12 text-center p-3 text-muted fs-8"><div class="spinner-border spinner-border-sm me-2"></div>Memuat preset 1-klik...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Widget -->
+                <div class="card bg-surface border">
+                    <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex align-items-center justify-content-between">
+                        <span class="fw-bold fs-7"><i class="bi bi-bell-fill text-info me-2"></i>Notifikasi Terbaru</span>
+                        <button class="btn btn-xs btn-outline-secondary" onclick="markAllNotificationsRead()">
+                            <i class="bi bi-check2-all me-1"></i>Tandai Dibaca
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="dashNotificationsList" class="list-group list-group-flush">
+                            <div class="p-3 text-center text-muted fs-8"><div class="spinner-border spinner-border-sm me-2"></div>Memuat notifikasi...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: PAKET SAYA -->
+            <section id="tab-packages" class="tab-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-light">Paket & Kuota Saya</h5>
+                        <p class="text-muted fs-8 mb-0">Daftar paket aktif dan rincian kuota berjalan</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="loadMyPackages()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                    </button>
+                </div>
+                <div id="myPackagesContainer" class="row g-2 g-md-3">
+                    <div class="col-12 text-center p-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat paket aktif...</div>
+                </div>
+            </section>
+
+            <!-- TAB: PAKET HOT & HOT-2 -->
+            <section id="tab-hot" class="tab-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-2.5 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-light">🔥 Paket Promo HOT</h5>
+                        <p class="text-muted fs-8 mb-0">Katalog promo tembak & rekomendasi</p>
+                    </div>
+                    <ul class="nav nav-pills" id="hotTabNav">
+                        <li class="nav-item"><a class="nav-link active py-1 px-3 fs-8" href="#" onclick="switchHotCatalog(1, event)">HOT (Catalog 1)</a></li>
+                        <li class="nav-item"><a class="nav-link py-1 px-3 fs-8" href="#" onclick="switchHotCatalog(2, event)">HOT-2 (Catalog 2)</a></li>
+                    </ul>
+                </div>
+
+                <div class="card bg-surface border mb-3">
+                    <div class="card-body p-2">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="hotSearchInput" class="form-control bg-dark border-secondary text-light fs-8" placeholder="Cari nama paket atau harga..." onkeyup="filterHotPackages()">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="hotPackagesContainer" class="row g-2 g-md-3">
+                    <div class="col-12 text-center p-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat paket hot...</div>
+                </div>
+            </section>
+
+            <!-- TAB: FAMILY CODE -->
+            <section id="tab-family" class="tab-content d-none">
+                <div class="card bg-surface border mb-3">
+                    <div class="card-header bg-transparent border-bottom py-2.5 px-3">
+                        <span class="fw-bold fs-7"><i class="bi bi-search me-2"></i>Inspect Family Code & Option Code</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-8">
+                                <label class="form-label fs-8 text-muted mb-1">Family Code (UUID) atau Option Code</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="familyCodeInput" class="form-control font-monospace" placeholder="Contoh: 23ddccc0-ac04-4e80-a939-5f5d76f4bc64">
+                                    <button class="btn btn-primary" onclick="inspectFamilyCode()">
+                                        <i class="bi bi-search me-1"></i> Family Code
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="inspectOptionCode()">
+                                        <i class="bi bi-info-circle me-1"></i> Cek Option
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4 d-flex align-items-end">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" id="familyIsEnterprise">
+                                    <label class="form-check-label fs-8 text-muted" for="familyIsEnterprise">Enterprise Store</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batch Loop Purchase Accordion -->
+                <div class="card bg-surface border mb-3" id="batchPurchaseCard">
+                    <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold fs-7"><i class="bi bi-repeat me-2 text-warning"></i>Beli Semua Paket di Family Code (Looping Batch)</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label fs-9 text-muted mb-1">Mulai Opsi No.</label>
+                                <input type="number" id="batchStartOpt" class="form-control form-control-sm font-monospace" value="1" min="1">
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label fs-9 text-muted mb-1">Delay (detik)</label>
+                                <input type="number" id="batchDelay" class="form-control form-control-sm font-monospace" value="0" min="0">
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" id="batchUseDecoy" checked>
+                                    <label class="form-check-label fs-8 text-muted" for="batchUseDecoy">Pakai Decoy</label>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <button class="btn btn-sm btn-warning w-100 fw-semibold" onclick="startBatchFamilyPurchase()">
+                                    <i class="bi bi-play-circle-fill me-1"></i> Jalankan Loop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Family Results Container -->
+                <div id="familyResultContainer"></div>
+            </section>
+
+            <!-- TAB: SCAN FAMILY CODE (BULK SCANNER & VALIDATOR) -->
+            <section id="tab-scan" class="tab-content d-none">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="fw-bold mb-0 text-light"><i class="bi bi-qr-code-scan text-warning me-2"></i>Scan Family Code</h5>
+                            <span class="badge bg-warning-subtle text-warning font-monospace fs-9">Bulk Scanner & Validator</span>
+                        </div>
+                        <p class="text-muted fs-8 mb-0">Scan dan validasi daftar Family Code (UUID) secara massal dengan multi-thread concurrent scanner.</p>
+                    </div>
+                    <div class="d-flex gap-1.5" id="scanSubNavButtons">
+                        <button class="btn btn-sm btn-primary" onclick="switchScanSubView('scanner')" id="btnScanViewScanner">
+                            <i class="bi bi-search me-1"></i>Scanner
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="switchScanSubView('files')" id="btnScanViewFiles">
+                            <i class="bi bi-folder2-open me-1"></i>File Hasil (<span id="scanFilesBadgeCount">0</span>)
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="switchScanSubView('history')" id="btnScanViewHistory">
+                            <i class="bi bi-clock-history me-1"></i>Riwayat
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SUB-VIEW: SCANNER -->
+                <div id="scanViewScanner">
+                    <!-- Scanner Input Card -->
+                    <div class="card bg-surface border mb-3">
+                        <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
+                            <ul class="nav nav-pills card-header-pills fs-8 font-monospace" id="scanInputTabs">
+                                <li class="nav-item">
+                                    <button class="nav-link active py-1 px-2.5" type="button" onclick="switchScanInputMode('upload', event)" id="tabBtnScanUpload">
+                                        <i class="bi bi-file-earmark-arrow-up me-1"></i>Upload TXT / JSON
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link py-1 px-2.5" type="button" onclick="switchScanInputMode('paste', event)" id="tabBtnScanPaste">
+                                        <i class="bi bi-clipboard-pulse me-1"></i>Paste Family Code
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link py-1 px-2.5" type="button" onclick="switchScanInputMode('preset', event)" id="tabBtnScanPreset">
+                                        <i class="bi bi-lightning-charge me-1"></i>Preset Batch
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body p-3">
+                            <!-- Input Mode: Upload File -->
+                            <div id="scanModeUpload">
+                                <div class="scan-dropzone" id="scanDropzone" onclick="document.getElementById('scanFileInput').click()">
+                                    <input type="file" id="scanFileInput" class="d-none" accept=".txt,.json" onchange="handleScanFileSelected(event)">
+                                    <div class="d-flex flex-column align-items-center justify-content-center py-2">
+                                        <i class="bi bi-cloud-arrow-up text-warning fs-1 mb-2"></i>
+                                        <h6 class="fw-bold text-light mb-1" id="scanDropzoneTitle">Klik atau Tarik File ke Sini</h6>
+                                        <p class="text-muted fs-8 mb-2" id="scanDropzoneSub">Mendukung format .TXT (1 code per baris) atau .JSON</p>
+                                        <span class="badge bg-darker border border-secondary text-secondary font-monospace fs-9" id="scanFileInfoBadge">Belum ada file dipilih</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Input Mode: Paste Textarea -->
+                            <div id="scanModePaste" class="d-none">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fs-8 text-muted mb-0">Daftar Family Code (Satu UUID per baris / koma):</label>
+                                    <span class="fs-9 font-monospace text-muted" id="scanPasteLineCount">0 baris terdeteksi</span>
+                                </div>
+                                <textarea id="scanPasteInput" class="form-control font-monospace fs-8 bg-darker text-light border-secondary" rows="6" spellcheck="false" placeholder="Contoh:&#10;23ddccc0-ac04-4e80-a939-5f5d76f4bc64&#10;98f6d901-523c-4ce1-86e0-94e82fe33221&#10;5a68e0e7-8b01-4475-b6d8-f58bb8f00112" oninput="updateScanPasteCounter()"></textarea>
+                            </div>
+
+                            <!-- Input Mode: Preset Shortcut -->
+                            <div id="scanModePreset" class="d-none">
+                                <div class="p-3 bg-darker rounded border border-secondary mb-2">
+                                    <div class="fw-semibold text-light fs-8 mb-2"><i class="bi bi-speedometer2 text-warning me-1.5"></i>Shortcut Batch Scan Generator:</div>
+                                    <p class="text-muted fs-8 mb-3">Jalankan benchmark dan validasi cepat dengan kuota paket simulasi:</p>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="selectScanPreset(200)">
+                                            <i class="bi bi-lightning-fill me-1"></i>Scan 200 Code
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="selectScanPreset(1000)">
+                                            <i class="bi bi-lightning-fill me-1"></i>Scan 1.000 Code
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="selectScanPreset(10000)">
+                                            <i class="bi bi-lightning-fill me-1"></i>Scan 10.000 Code
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="loadListFamcodeFile()">
+                                            <i class="bi bi-file-text me-1"></i>Load list_famcode.txt
+                                        </button>
+                                    </div>
+                                    <div id="scanPresetSelectedInfo" class="mt-2 text-info fs-8 font-monospace d-none"></div>
+                                </div>
+                            </div>
+
+                            <!-- Scan Settings Panel -->
+                            <div class="card bg-darker border border-secondary mt-3">
+                                <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center" role="button" data-bs-toggle="collapse" data-bs-target="#scanSettingsCollapse" aria-expanded="true">
+                                    <span class="fs-8 fw-bold text-light"><i class="bi bi-sliders text-cyan me-1.5"></i>Pengaturan Scan (Concurrency & Timeout)</span>
+                                    <i class="bi bi-chevron-down text-muted fs-9"></i>
+                                </div>
+                                <div class="collapse show" id="scanSettingsCollapse">
+                                    <div class="card-body p-3">
+                                        <div class="row g-2">
+                                            <!-- Concurrency -->
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fs-8 text-muted mb-1 d-flex justify-content-between">
+                                                    <span>Concurrency (Thread)</span>
+                                                    <span class="font-monospace text-cyan fw-bold" id="scanConcurrencyValText">20</span>
+                                                </label>
+                                                <input type="range" class="form-range" id="scanConcurrencyRange" min="1" max="100" value="20" oninput="document.getElementById('scanConcurrencyValText').innerText = this.value">
+                                            </div>
+
+                                            <!-- Timeout -->
+                                            <div class="col-12 col-md-3">
+                                                <label class="form-label fs-8 text-muted mb-1">Timeout Request (ms)</label>
+                                                <input type="number" id="scanTimeoutInput" class="form-control form-control-sm font-monospace" value="5000" min="500" max="30000" step="500">
+                                            </div>
+
+                                            <!-- Migration Type -->
+                                            <div class="col-12 col-md-3">
+                                                <label class="form-label fs-8 text-muted mb-1">Migration Type</label>
+                                                <select id="scanMigTypeSelect" class="form-select form-select-sm font-monospace fs-8">
+                                                    <option value="NONE" selected>NONE</option>
+                                                    <option value="PRE_TO_PRIOH">PRE_TO_PRIOH</option>
+                                                    <option value="PRIOH_TO_PRIO">PRIOH_TO_PRIO</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Enterprise Store -->
+                                            <div class="col-12 col-md-2 d-flex align-items-end">
+                                                <div class="form-check form-switch mb-1">
+                                                    <input class="form-check-input" type="checkbox" id="scanIsEnterpriseSwitch">
+                                                    <label class="form-check-label fs-8 text-muted" for="scanIsEnterpriseSwitch">Enterprise</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons Bar -->
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 pt-2 border-top border-secondary">
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary" id="btnResetScan" onclick="resetScanForm()">
+                                        <i class="bi bi-trash me-1"></i>Reset
+                                    </button>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-danger d-none" id="btnStopScan" onclick="stopActiveScan()">
+                                        <i class="bi bi-stop-circle-fill me-1"></i>Stop Scan
+                                    </button>
+                                    <button class="btn btn-sm btn-warning text-dark fw-bold px-4" id="btnStartScan" onclick="startFamilyScan()">
+                                        <i class="bi bi-rocket-takeoff-fill me-1"></i>Mulai Scan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scan Progress & Monitoring Container -->
+                    <div id="scanProgressContainer" class="card bg-surface border mb-3 d-none">
+                        <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-secondary font-monospace fs-9" id="scanJobStatusBadge">IDLE</span>
+                                <span class="fs-8 fw-bold text-light font-monospace" id="scanJobIdDisplay">-</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 fs-9 font-monospace text-muted">
+                                <span><i class="bi bi-stopwatch me-1"></i><span id="scanElapsedDisplay">00:00</span></span>
+                                <span>•</span>
+                                <span><i class="bi bi-speedometer me-1"></i><span id="scanSpeedDisplay">0</span> code/s</span>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-3">
+                            <!-- Animated Progress Bar -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center fs-8 font-monospace mb-1">
+                                    <span class="text-light fw-bold">Progress: <span id="scanProgressText">0 / 0</span></span>
+                                    <span class="text-cyan fw-bold" id="scanProgressPercent">0%</span>
+                                </div>
+                                <div class="scan-progress-bar-wrap">
+                                    <div class="scan-progress-bar animated-stripes" id="scanProgressBar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- 5 Stats Counters -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-4 col-md-2" style="flex: 1 0 18%;">
+                                    <div class="scan-stat-card stat-valid" role="button" onclick="setScanResultsFilter('valid')">
+                                        <div class="scan-stat-val text-success" id="statValidCount">0</div>
+                                        <div class="scan-stat-lbl text-success">VALID</div>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-2" style="flex: 1 0 18%;">
+                                    <div class="scan-stat-card stat-invalid" role="button" onclick="setScanResultsFilter('invalid')">
+                                        <div class="scan-stat-val text-danger" id="statInvalidCount">0</div>
+                                        <div class="scan-stat-lbl text-danger">INVALID</div>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-2" style="flex: 1 0 18%;">
+                                    <div class="scan-stat-card stat-duplicate" role="button" onclick="setScanResultsFilter('duplicate')">
+                                        <div class="scan-stat-val text-warning" id="statDuplicateCount">0</div>
+                                        <div class="scan-stat-lbl text-warning">DUPLICATE</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2" style="flex: 1 0 18%;">
+                                    <div class="scan-stat-card stat-skip" role="button" onclick="setScanResultsFilter('skip')">
+                                        <div class="scan-stat-val text-secondary" id="statSkipCount">0</div>
+                                        <div class="scan-stat-lbl text-secondary">SKIP</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2" style="flex: 1 0 18%;">
+                                    <div class="scan-stat-card stat-error" role="button" onclick="setScanResultsFilter('error')">
+                                        <div class="scan-stat-val" style="color: #db6d28;" id="statErrorCount">0</div>
+                                        <div class="scan-stat-lbl" style="color: #db6d28;">ERROR</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Export Action Bar -->
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top border-secondary">
+                                <span class="fs-9 text-muted font-monospace"><i class="bi bi-download me-1"></i>Unduh Hasil:</span>
+                                <div class="d-flex flex-wrap gap-1.5">
+                                    <button class="btn btn-xs btn-outline-success" onclick="downloadCurrentScanFile('valid_famcodes.txt')" id="btnDlValid">
+                                        <i class="bi bi-file-earmark-check me-1"></i>Valid TXT
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-danger" onclick="downloadCurrentScanFile('invalid_famcodes.txt')" id="btnDlInvalid">
+                                        <i class="bi bi-file-earmark-x me-1"></i>Invalid TXT
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-secondary" onclick="downloadCurrentScanFile('list_famcode.txt')" id="btnDlAll">
+                                        <i class="bi bi-file-earmark-text me-1"></i>Semua TXT
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-info" onclick="downloadCurrentScanFile('success.json')" id="btnDlJson">
+                                        <i class="bi bi-file-code me-1"></i>Export JSON
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div id="scanResultsSection" class="d-none">
+                        <!-- Filters and Search Toolbar -->
+                        <div class="card bg-surface border mb-3">
+                            <div class="card-body p-2 p-md-2.5">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                    <!-- Filter Chips -->
+                                    <div class="d-flex flex-wrap gap-1" id="scanFilterChips">
+                                        <button class="scan-filter-chip active" data-filter="all" onclick="setScanResultsFilter('all')">
+                                            <span>Semua</span> (<span id="filterCountAll">0</span>)
+                                        </button>
+                                        <button class="scan-filter-chip" data-filter="valid" onclick="setScanResultsFilter('valid')">
+                                            <i class="bi bi-check-circle text-success"></i>
+                                            <span>Valid</span> (<span id="filterCountValid">0</span>)
+                                        </button>
+                                        <button class="scan-filter-chip" data-filter="invalid" onclick="setScanResultsFilter('invalid')">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <span>Invalid</span> (<span id="filterCountInvalid">0</span>)
+                                        </button>
+                                        <button class="scan-filter-chip" data-filter="duplicate" onclick="setScanResultsFilter('duplicate')">
+                                            <i class="bi bi-layers text-warning"></i>
+                                            <span>Duplicate</span> (<span id="filterCountDuplicate">0</span>)
+                                        </button>
+                                        <button class="scan-filter-chip" data-filter="skip" onclick="setScanResultsFilter('skip')">
+                                            <i class="bi bi-dash-circle text-secondary"></i>
+                                            <span>Skip</span> (<span id="filterCountSkip">0</span>)
+                                        </button>
+                                        <button class="scan-filter-chip" data-filter="error" onclick="setScanResultsFilter('error')">
+                                            <i class="bi bi-exclamation-triangle" style="color:#db6d28;"></i>
+                                            <span>Error</span> (<span id="filterCountError">0</span>)
+                                        </button>
+                                    </div>
+
+                                    <!-- Search In Results -->
+                                    <div class="input-group input-group-sm" style="max-width: 240px;">
+                                        <input type="text" id="scanFilterSearch" class="form-control form-control-sm font-monospace" placeholder="Cari kode..." oninput="onScanSearchInput(this.value)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results Card List -->
+                        <div class="row g-2 mb-3" id="scanResultsList">
+                            <!-- Dynamically populated via JS -->
+                        </div>
+
+                        <!-- Pagination Controls -->
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-2 bg-surface rounded border" id="scanPaginationControls">
+                            <span class="fs-9 text-muted font-monospace" id="scanPaginationInfo">Menampilkan 0 dari 0 hasil</span>
+                            <div class="d-flex gap-1" id="scanPaginationButtons">
+                                <button class="btn btn-xs btn-outline-secondary" id="btnScanPrevPage" onclick="changeScanPage(-1)" disabled>
+                                    <i class="bi bi-chevron-left me-1"></i>Prev
+                                </button>
+                                <span class="badge bg-darker border border-secondary font-monospace d-flex align-items-center px-2 fs-9" id="scanCurrentPageText">Hal 1 / 1</span>
+                                <button class="btn btn-xs btn-outline-secondary" id="btnScanNextPage" onclick="changeScanPage(1)" disabled>
+                                    Next<i class="bi bi-chevron-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-VIEW: FILE HASIL SCAN -->
+                <div id="scanViewFiles" class="d-none">
+                    <div class="card bg-surface border mb-3">
+                        <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold text-light mb-0"><i class="bi bi-folder2-open text-primary me-2"></i>File Hasil Scanner</h6>
+                                <span class="fs-9 text-muted">Daftar file list_famcode.txt, valid_famcodes.txt, invalid_famcodes.txt, success.json yang dihasilkan</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="loadScanFilesList()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Refresh Files
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover mb-0 align-middle">
+                                    <thead>
+                                        <tr class="fs-9 text-muted text-uppercase tracking-wider">
+                                            <th class="ps-3">Nama File</th>
+                                            <th>Job ID</th>
+                                            <th>Ukuran</th>
+                                            <th>Waktu Dibuat</th>
+                                            <th class="pe-3 text-end">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scanFilesTableBody">
+                                        <tr><td colspan="5" class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat daftar file...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-VIEW: RIWAYAT SCAN -->
+                <div id="scanViewHistory" class="d-none">
+                    <div class="card bg-surface border mb-3">
+                        <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold text-light mb-0"><i class="bi bi-clock-history text-warning me-2"></i>Riwayat Scan Sebelumnya</h6>
+                                <span class="fs-9 text-muted">Log dan metadata aktivitas pemindaian Family Code</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="loadScanHistoryList()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Refresh Riwayat
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="scanHistoryListContainer" class="list-group list-group-flush">
+                                <div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat riwayat...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: GENERATE FAMCODE (RANDOM UUID TESTING GENERATOR) -->
+            <section id="tab-generate" class="tab-content d-none">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="fw-bold mb-0 text-light"><i class="bi bi-fingerprint text-info me-2"></i>Generate Famcode</h5>
+                            <span class="badge bg-info-subtle text-info font-monospace fs-9">Testing & Simulation Only</span>
+                        </div>
+                        <p class="text-muted fs-8 mb-0">Generator UUID/Famcode acak (UUID v4) menggunakan cryptographically secure random source untuk kebutuhan testing dan simulasi.</p>
+                    </div>
+                </div>
+
+                <!-- Info Notice / Guardrail Note -->
+                <div class="alert alert-dark border border-secondary p-2.5 mb-3 fs-9 text-muted">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-shield-check text-success fs-6 mt-0.5"></i>
+                        <div>
+                            <span class="text-light fw-semibold">Testing Tool:</span> Generator ini membuat UUID v4 secara lokal menggunakan <code class="text-info">crypto.randomUUID()</code> untuk simulasi data. Fitur ini <b>TIDAK</b> terhubung ke endpoint eksternal dan <b>TIDAK</b> melakukan brute-force / enumeration.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generator Controls Card -->
+                <div class="card bg-surface border mb-3">
+                    <div class="card-header bg-transparent border-bottom py-2.5 px-3">
+                        <span class="fw-bold fs-7"><i class="bi bi-sliders text-cyan me-2"></i>Konfigurasi Generator</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <!-- Jumlah / Count -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fs-8 text-muted mb-1 d-flex justify-content-between">
+                                    <span>Jumlah UUID:</span>
+                                    <span class="text-info font-monospace fw-bold" id="genCountDisplay">100</span>
+                                </label>
+                                <div class="d-flex flex-wrap gap-1.5 mb-2" id="genPresetButtonsGroup">
+                                    <button type="button" class="gen-preset-btn" onclick="setGenPresetCount(10)">10</button>
+                                    <button type="button" class="gen-preset-btn" onclick="setGenPresetCount(50)">50</button>
+                                    <button type="button" class="gen-preset-btn active" onclick="setGenPresetCount(100)">100</button>
+                                    <button type="button" class="gen-preset-btn" onclick="setGenPresetCount(500)">500</button>
+                                    <button type="button" class="gen-preset-btn" onclick="setGenPresetCount(1000)">1.000</button>
+                                    <button type="button" class="gen-preset-btn" onclick="setGenPresetCount(5000)">5.000</button>
+                                </div>
+                                <input type="number" id="genCountInput" class="form-control form-control-sm font-monospace" value="100" min="1" max="10000" oninput="onGenCountInputChange(this.value)">
+                                <div class="form-text fs-9 text-muted">Mendukung 1 hingga 10.000 UUID v4 acak per batch.</div>
+                            </div>
+
+                            <!-- Format Selector -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fs-8 text-muted mb-1">Format UUID:</label>
+                                <select id="genFormatSelect" class="form-select form-select-sm font-monospace fs-8 mb-2" onchange="onGenFormatChange()">
+                                    <option value="standard" selected>UUID v4 (Standard - lowercase with hyphens)</option>
+                                    <option value="uppercase">UUID v4 (Uppercase with hyphens)</option>
+                                    <option value="nohyphen">UUID v4 (Tanpa Tanda Hubung / 32-hex)</option>
+                                </select>
+                                <div class="p-2 bg-darker rounded border border-secondary fs-9 font-monospace text-muted">
+                                    <span>Contoh Preview: </span>
+                                    <span class="text-cyan" id="genFormatPreview">7f3a2c91-4b82-4e80-a939-5f5d76f4bc64</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Button Bar -->
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 pt-2.5 border-top border-secondary">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearGeneratedFamcodes()">
+                                <i class="bi bi-trash me-1"></i>Clear
+                            </button>
+                            <button class="btn btn-sm btn-info text-dark fw-bold px-4" id="btnGenerateFamcode" onclick="executeGenerateFamcode()">
+                                <i class="bi bi-magic me-1"></i>Generate Famcode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output / Result Card -->
+                <div class="card bg-surface border mb-3" id="genResultCard">
+                    <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold fs-7"><i class="bi bi-card-text text-success me-1.5"></i>Hasil Generator</span>
+                            <span class="badge bg-success-subtle text-success font-monospace fs-9" id="genResultCountBadge">0 UUID</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 fs-9 font-monospace text-muted">
+                            <span><i class="bi bi-stopwatch me-1"></i><span id="genDurationBadge">0 ms</span></span>
+                            <span>•</span>
+                            <span class="text-success"><i class="bi bi-check-circle me-1"></i>100% Unique</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-3">
+                        <!-- Scrollable Textarea Output -->
+                        <div class="mb-3">
+                            <textarea id="genOutputText" class="form-control gen-output-textarea w-100" rows="12" readonly spellcheck="false" placeholder="// Klik tombol [Generate Famcode] di atas untuk membuat daftar UUID testing..."></textarea>
+                        </div>
+
+                        <!-- Action Toolbar -->
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top border-secondary">
+                            <div class="d-flex flex-wrap gap-1.5">
+                                <button class="btn btn-xs btn-outline-light" id="btnCopyAllGen" onclick="copyAllGeneratedFamcodes()">
+                                    <i class="bi bi-clipboard me-1"></i>Copy All
+                                </button>
+                                <button class="btn btn-xs btn-outline-success" id="btnDownloadTxtGen" onclick="downloadGeneratedTxt()">
+                                    <i class="bi bi-file-earmark-text me-1"></i>Download TXT
+                                </button>
+                                <button class="btn btn-xs btn-outline-info" id="btnDownloadJsonGen" onclick="downloadGeneratedJson()">
+                                    <i class="bi bi-file-code me-1"></i>Download JSON
+                                </button>
+                            </div>
+                            <div>
+                                <button class="btn btn-xs btn-outline-warning" onclick="sendGeneratedToScanTab()" title="Salin daftar UUID ini ke Tab Scan Family Code">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Buka di Scanner
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: STORE BROWSER -->
+            <section id="tab-store" class="tab-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-light">🛒 XL Store Browser</h5>
+                        <p class="text-muted fs-8 mb-0">Eksplorasi segmen, family list, dan redeemables langsung dari API store</p>
+                    </div>
+                    <div class="d-flex gap-1.5">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadStoreSegments()">Segmen Store</button>
+                        <button class="btn btn-sm btn-outline-info" onclick="loadStoreFamilies()">Family List</button>
+                        <button class="btn btn-sm btn-outline-success" onclick="loadStoreRedeemables()">Redeemables</button>
+                    </div>
+                </div>
+                <div id="storeResultContainer" class="row g-2 g-md-3">
+                    <div class="col-12 text-center p-5 text-muted">Pilih kategori store di atas untuk memulai pencarian katalog.</div>
+                </div>
+            </section>
+
+            <!-- TAB: RIWAYAT TRANSAKSI -->
+            <section id="tab-transactions" class="tab-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-light">Riwayat Transaksi</h5>
+                        <p class="text-muted fs-8 mb-0">Daftar riwayat transaksi & status pembayaran akun</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="loadTransactionHistory()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                    </button>
+                </div>
+                <div class="card bg-surface border">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0 align-middle">
+                                <thead>
+                                    <tr class="fs-9 text-muted text-uppercase tracking-wider">
+                                        <th class="ps-3">No</th>
+                                        <th>Paket / Transaksi</th>
+                                        <th>Harga</th>
+                                        <th>Metode</th>
+                                        <th>Tanggal</th>
+                                        <th>Status Transaksi</th>
+                                        <th class="pe-3">Status Bayar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionsTableBody">
+                                    <tr><td colspan="7" class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat riwayat...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: FAMILY PLAN & CIRCLE -->
+            <section id="tab-famplan" class="tab-content d-none">
+                <div class="row g-3">
+                    <!-- Akrab Organizer -->
+                    <div class="col-12 col-xl-6">
+                        <div class="card bg-surface border h-100">
+                            <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold fs-7"><i class="bi bi-people-fill text-primary me-2"></i>Paket Akrab / Family Plan</span>
+                                <button class="btn btn-xs btn-outline-primary" onclick="loadFamplanInfo()"><i class="bi bi-arrow-clockwise"></i></button>
+                            </div>
+                            <div class="card-body p-3" id="famplanInfoContainer">
+                                <div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat Akrab Organizer...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Circle -->
+                    <div class="col-12 col-xl-6">
+                        <div class="card bg-surface border h-100">
+                            <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold fs-7"><i class="bi bi-circle-square text-info me-2"></i>Circle XL</span>
+                                <button class="btn btn-xs btn-outline-info" onclick="loadCircleInfo()"><i class="bi bi-arrow-clockwise"></i></button>
+                            </div>
+                            <div class="card-body p-3" id="circleInfoContainer">
+                                <div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat data Circle...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: TOOLS & UTILITIES -->
+            <section id="tab-tools" class="tab-content d-none">
+                <div class="row g-3">
+                    <!-- MSISDN Validator -->
+                    <div class="col-12 col-md-6">
+                        <div class="card bg-surface border h-100">
+                            <div class="card-header bg-transparent border-bottom py-2.5 px-3 fw-bold fs-7">
+                                <i class="bi bi-telephone-check text-success me-2"></i>Validasi MSISDN
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="mb-2.5">
+                                    <label class="form-label fs-8 text-muted mb-1">Nomor MSISDN (628xxxx)</label>
+                                    <input type="text" id="toolMsisdnInput" class="form-control form-control-sm font-monospace" placeholder="6281234567890">
+                                </div>
+                                <button class="btn btn-sm btn-success" onclick="executeValidateMsisdn()">
+                                    <i class="bi bi-check-circle me-1"></i> Validasi Nomor
+                                </button>
+                                <div id="toolMsisdnResult" class="mt-2.5"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dukcapil Prepaid Registration -->
+                    <div class="col-12 col-md-6">
+                        <div class="card bg-surface border h-100">
+                            <div class="card-header bg-transparent border-bottom py-2.5 px-3 fw-bold fs-7">
+                                <i class="bi bi-person-vcard text-warning me-2"></i>Registrasi Dukcapil (NIK & KK)
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="mb-2">
+                                    <label class="form-label fs-9 text-muted mb-1">MSISDN (628xxxx)</label>
+                                    <input type="text" id="dukcapilMsisdn" class="form-control form-control-sm font-monospace" placeholder="6281234567890">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fs-9 text-muted mb-1">Nomor KK (16 digit)</label>
+                                    <input type="text" id="dukcapilKk" class="form-control form-control-sm font-monospace" placeholder="3201xxxxxxxxxxxx">
+                                </div>
+                                <div class="mb-2.5">
+                                    <label class="form-label fs-9 text-muted mb-1">Nomor NIK (16 digit)</label>
+                                    <input type="text" id="dukcapilNik" class="form-control form-control-sm font-monospace" placeholder="3201xxxxxxxxxxxx">
+                                </div>
+                                <button class="btn btn-sm btn-warning fw-semibold" onclick="executeDukcapilRegist()">
+                                    <i class="bi bi-send-check me-1"></i> Submit Registrasi
+                                </button>
+                                <div id="dukcapilResult" class="mt-2.5"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: BOOKMARKS & 1-CLICK AUTO-BUY PRESETS -->
+            <section id="tab-bookmarks" class="tab-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-light"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Preset 1-Klik Auto Buy</h5>
+                        <p class="text-muted fs-8 mb-0">Simpan Family Code dengan metode bayar & harga untuk eksekusi instan 1-klik</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary" onclick="openAddPresetModal()">
+                            <i class="bi bi-plus-lg me-1"></i>+ Tambah Preset Famcode
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadBookmarks()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="bookmarksContainer" class="row g-2 g-md-3">
+                    <div class="col-12 text-center p-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat preset...</div>
+                </div>
+            </section>
+
+            <!-- TAB: COMMAND RUNNER / TERMINAL -->
+            <section id="tab-terminal" class="tab-content d-none">
+                <div class="row g-3">
+                    <!-- Left Command Selector & Form -->
+                    <div class="col-12 col-lg-5">
+                        <div class="card bg-surface border">
+                            <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold fs-7"><i class="bi bi-sliders text-cyan me-2"></i>CLI Command Dispatcher</span>
+                                <span class="badge bg-secondary font-monospace fs-9">Allowlist Only</span>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="mb-2.5">
+                                    <label class="form-label fs-8 text-muted mb-1">Pilih Command CLI</label>
+                                    <select id="cliCommandSelect" class="form-select form-select-sm font-monospace fs-8" onchange="onCliCommandChange()">
+                                        <option value="">-- Pilih Command --</option>
+                                    </select>
+                                </div>
+                                <div id="cliCommandDescription" class="alert alert-secondary fs-8 py-1.5 px-2.5 mb-2.5 d-none"></div>
+
+                                <!-- Dynamic Form Arguments Container -->
+                                <div id="cliArgsContainer" class="d-flex flex-column gap-2 mb-2.5"></div>
+
+                                <!-- Constructed Command Preview -->
+                                <div class="mb-3">
+                                    <label class="form-label fs-9 text-muted mb-1">Command String Preview</label>
+                                    <div id="cliCommandPreview" class="code-display-box">
+                                        <span class="code-text">me-cli</span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button id="btnRunCommand" class="btn btn-primary btn-sm flex-grow-1 fw-semibold" onclick="runSelectedCommand()">
+                                        <i class="bi bi-play-fill me-1"></i> Run Command
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="resetCommandForm()" title="Reset Form">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Command History Session -->
+                        <div class="card bg-surface border mt-3">
+                            <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold fs-8"><i class="bi bi-clock-history me-1.5"></i>Riwayat Command</span>
+                                <button class="btn btn-xs btn-outline-danger" onclick="clearCommandHistory()">Hapus</button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="cliHistoryList" class="list-group list-group-flush fs-8 font-monospace" style="max-height: 180px; overflow-y: auto;">
+                                    <div class="p-3 text-center text-muted fs-8">Belum ada riwayat.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Live Console Area -->
+                    <div class="col-12 col-lg-7">
+                        <div class="terminal-card h-100 d-flex flex-column">
+                            <div class="card-header bg-darker border-bottom d-flex justify-content-between align-items-center py-2 px-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="d-flex gap-1">
+                                        <span class="terminal-dot bg-danger"></span>
+                                        <span class="terminal-dot bg-warning"></span>
+                                        <span class="terminal-dot bg-success"></span>
+                                    </div>
+                                    <span class="font-monospace fs-8 text-muted ms-2">console@duar:~</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <span id="terminalStatusBadge" class="badge bg-secondary font-monospace fs-9">IDLE</span>
+                                    <button class="btn btn-xs btn-outline-secondary" onclick="copyConsoleOutput()" title="Salin Output">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-secondary" onclick="clearConsoleOutput()" title="Bersihkan Console">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0 flex-grow-1 d-flex flex-column">
+                                <pre id="terminalConsole" class="terminal-body flex-grow-1 p-3 m-0 text-light"><span class="text-muted">DUAR Web Console initialized.
+Pilih command di panel kiri dan klik [Run Command] untuk mengeksekusi.</span></pre>
+                            </div>
+                            <div class="card-footer bg-darker border-top py-1 px-3 d-flex justify-content-between align-items-center fs-9 text-muted font-monospace">
+                                <span id="terminalExecTime">Duration: 0.00s</span>
+                                <span id="terminalExitCode">Exit Code: -</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: DEC0Y MANAGEMENT -->
+            <section id="tab-decoy" class="tab-content d-none">
+                <!-- Header & Flow Banner -->
+                <div class="d-flex justify-content-between align-items-center mb-2.5 flex-wrap gap-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="fw-bold mb-0 text-light"><i class="bi bi-shield-shaded text-cyan me-2"></i>DEC0Y Management</h5>
+                            <span class="badge bg-cyan-subtle text-cyan font-monospace fs-9">Multi-Decoy Entitlement</span>
+                        </div>
+                        <p class="text-muted fs-8 mb-0">Satu paket mencakup beberapa jalur decoy. Pilih decoy aktif tanpa potong saldo lagi.</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="loadDecoyEntitlements(true)">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh Status
+                    </button>
+                </div>
+
+                <!-- DEC0Y Management Step Flow Visualizer -->
+                <div class="card bg-surface border mb-3">
+                    <div class="card-body p-2 p-md-2.5">
+                        <div class="decoy-step-flow d-flex align-items-center justify-content-between flex-wrap gap-1 fs-9 font-monospace">
+                            <div class="step-flow-item active d-flex align-items-center gap-1.5">
+                                <span class="step-num">1</span>
+                                <span class="step-label">Active Package</span>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted step-arrow"></i>
+                            <div class="step-flow-item active d-flex align-items-center gap-1.5">
+                                <span class="step-num">2</span>
+                                <span class="step-label">Available Decoys</span>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted step-arrow"></i>
+                            <div class="step-flow-item active d-flex align-items-center gap-1.5">
+                                <span class="step-num">3</span>
+                                <span class="step-label">Select Decoy</span>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted step-arrow"></i>
+                            <div class="step-flow-item active d-flex align-items-center gap-1.5">
+                                <span class="step-num">4</span>
+                                <span class="step-label">Use Decoy</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Package Summary Card -->
+                <div class="card bg-card border mb-3" id="decoyPackageSummaryCard">
+                    <div class="card-body p-3">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-12 col-md-7">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="text-muted fs-9 text-uppercase tracking-wider">Active Package</span>
+                                    <span class="badge bg-success-subtle text-success fs-9" id="decoyPkgStatusBadge">ACTIVE</span>
+                                </div>
+                                <h4 class="fw-bold text-light mb-1" id="decoyActivePkgName">Paket Premium VIP</h4>
+                                <div class="text-muted fs-8 d-flex flex-wrap align-items-center gap-2">
+                                    <span><i class="bi bi-calendar-check me-1"></i>Berlaku s/d: <b class="text-light" id="decoyActivePkgExp">-</b></span>
+                                    <span class="text-secondary">•</span>
+                                    <span><i class="bi bi-check2-circle text-success me-1"></i><span id="decoyEntitledCountText">3 Decoy Termasuk</span></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-5 text-md-end">
+                                <div class="p-2 bg-darker rounded border border-secondary text-start d-inline-block w-100">
+                                    <div class="fs-9 text-muted mb-1">Paket Simulasi / Upgrade Tier:</div>
+                                    <div class="btn-group btn-group-sm w-100" role="group">
+                                        <button type="button" class="btn btn-outline-secondary fs-9 py-1" id="btnPkgSimBasic" onclick="changeDecoyPackage('basic')">Basic</button>
+                                        <button type="button" class="btn btn-outline-secondary fs-9 py-1" id="btnPkgSimStandard" onclick="changeDecoyPackage('standard')">Standard</button>
+                                        <button type="button" class="btn btn-outline-secondary fs-9 py-1 active" id="btnPkgSimPremium" onclick="changeDecoyPackage('premium')">Premium</button>
+                                        <button type="button" class="btn btn-outline-secondary fs-9 py-1" id="btnPkgSimEnterprise" onclick="changeDecoyPackage('enterprise')">Enterprise</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Available Decoys Header -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fs-8 fw-bold text-uppercase tracking-wider text-muted">
+                        <i class="bi bi-grid-fill me-1.5 text-cyan"></i>Daftar Decoy Dalam Paket (Entitlement)
+                    </span>
+                    <span class="fs-9 text-muted font-monospace" id="decoySelectionHint">Pilih salah satu decoy untuk diaktifkan</span>
+                </div>
+
+                <!-- Decoy Cards Grid -->
+                <div class="row g-2 g-md-3" id="decoyCardsContainer">
+                    <div class="col-12 text-center p-5 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2"></div>Memuat data decoy entitlement...
+                    </div>
+                </div>
+
+                <!-- Security & Notice Note -->
+                <div class="alert alert-dark border border-secondary p-2.5 mt-3 fs-9 text-muted">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-info-circle-fill text-info fs-6 mt-0.5"></i>
+                        <div>
+                            <span class="text-light fw-semibold">Bebas Ganti Jalur Kapan Saja:</span> Decoy yang termasuk dalam paket aktif Anda (<span class="text-info">AVAILABLE</span>) dapat diganti secara instan tanpa biaya tambahan. Saldo dan kuota Anda tidak akan dipotong saat mengganti decoy.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: CONFIG & DATA MANAGER (DECOY & HOT DATA) -->
+            <section id="tab-config" class="tab-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-light"><i class="bi bi-gear-wide-connected text-warning me-2"></i>Pengaturan Decoy & HOT Data</h5>
+                        <p class="text-muted fs-8 mb-0">Ubah dan sesuaikan paket decoy bypass serta katalog HOT promo langsung dari web</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-warning" onclick="loadConfigFileList()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
+                    </button>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Left Column: Data Files List -->
+                    <div class="col-12 col-lg-4">
+                        <div class="card bg-surface border h-100">
+                            <div class="card-header bg-transparent border-bottom py-2.5 px-3">
+                                <span class="fw-bold fs-7"><i class="bi bi-folder2-open me-2 text-primary"></i>Pilih File Konfigurasi</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="configFilesList" class="list-group list-group-flush fs-8">
+                                    <div class="p-3 text-center text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat daftar file...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Editor Area -->
+                    <div class="col-12 col-lg-8">
+                        <div class="card bg-surface border">
+                            <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <h6 class="fw-bold text-light mb-0" id="configEditorTitle">Pilih File</h6>
+                                    <span class="badge bg-dark border border-secondary font-monospace fs-9" id="configEditorPath">-</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <button class="btn btn-xs btn-outline-info" onclick="beautifyConfigJson()" title="Format JSON">
+                                        <i class="bi bi-magic me-1"></i>Format
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-secondary" onclick="reloadCurrentConfigFile()" title="Muat Ulang File">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-3">
+                                <p class="text-muted fs-8 mb-2" id="configEditorDesc">Pilih file di panel kiri untuk mulai mengedit.</p>
+
+                                <!-- Visual Form Editor (For Decoy Files) -->
+                                <div id="configVisualForm" class="p-2.5 bg-darker rounded border mb-3 d-none">
+                                    <div class="fs-8 fw-bold text-warning mb-2"><i class="bi bi-ui-checks me-1"></i>Visual Form Editor (Auto Sync)</div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label fs-9 text-muted mb-0.5">Family Name</label>
+                                            <input type="text" id="vFormFamName" class="form-control form-control-sm" oninput="syncVisualFormToJson()">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label fs-9 text-muted mb-0.5">Option Name</label>
+                                            <input type="text" id="vFormOptName" class="form-control form-control-sm" oninput="syncVisualFormToJson()">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label fs-9 text-muted mb-0.5">Family Code (UUID)</label>
+                                            <input type="text" id="vFormFamCode" class="form-control form-control-sm font-monospace" oninput="syncVisualFormToJson()">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label fs-9 text-muted mb-0.5">Variant Code (UUID)</label>
+                                            <input type="text" id="vFormVarCode" class="form-control form-control-sm font-monospace" oninput="syncVisualFormToJson()">
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label fs-9 text-muted mb-0.5">Order (Index Opsi)</label>
+                                            <input type="number" id="vFormOrder" class="form-control form-control-sm font-monospace" min="1" oninput="syncVisualFormToJson()">
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label fs-9 text-muted mb-0.5">Price (Rp)</label>
+                                            <input type="number" id="vFormPrice" class="form-control form-control-sm font-monospace" min="0" oninput="syncVisualFormToJson()">
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label fs-9 text-muted mb-0.5">Migration Type</label>
+                                            <select id="vFormMigType" class="form-select form-select-sm font-monospace fs-9" onchange="syncVisualFormToJson()">
+                                                <option value="NONE">NONE</option>
+                                                <option value="PRE_TO_PRIOH">PRE_TO_PRIOH</option>
+                                                <option value="PRIOH_TO_PRIO">PRIOH_TO_PRIO</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6 col-md-3 d-flex align-items-end">
+                                            <div class="form-check form-switch mb-1">
+                                                <input class="form-check-input" type="checkbox" id="vFormIsEnterprise" onchange="syncVisualFormToJson()">
+                                                <label class="form-check-label fs-8 text-muted" for="vFormIsEnterprise">Enterprise</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Raw JSON Editor -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label fs-8 text-muted mb-0">JSON Data Editor</label>
+                                        <span class="fs-9 text-muted" id="configJsonStatus">Ready</span>
+                                    </div>
+                                    <textarea id="configJsonEditor" class="form-control font-monospace fs-8 bg-darker text-light border-secondary" rows="12" spellcheck="false" placeholder="// Pilih file dari daftar di sebelah kiri..." oninput="onJsonEditorChange()"></textarea>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
+                                    <button class="btn btn-sm btn-outline-info" id="btnInspectConfigFamily" onclick="inspectConfigFamily()" title="Buka Family Code ini di Tab Family Code">
+                                        <i class="bi bi-search me-1"></i>Inspect di Family Tab
+                                    </button>
+                                    <button class="btn btn-sm btn-success px-3 fw-semibold" id="btnSaveConfigFile" onclick="saveCurrentConfigFile()">
+                                        <i class="bi bi-save me-1"></i> Simpan Perubahan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Bottom App Navigation (Smartphone / Mobile Only < 992px) -->
+    <nav class="bottom-app-nav d-lg-none">
+        <div class="bottom-nav-inner">
+            <a href="#dashboard" class="bottom-nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+                <i class="bi bi-speedometer2 nav-icon"></i>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="#packages" class="bottom-nav-item" data-tab="packages" onclick="switchTab('packages')">
+                <i class="bi bi-box-seam nav-icon"></i>
+                <span class="nav-label">Paket</span>
+            </a>
+            <a href="#hot" class="bottom-nav-item" data-tab="hot" onclick="switchTab('hot')">
+                <i class="bi bi-fire nav-icon text-danger"></i>
+                <span class="nav-label">HOT</span>
+            </a>
+            <a href="#decoy" class="bottom-nav-item" data-tab="decoy" onclick="switchTab('decoy')">
+                <i class="bi bi-shield-shaded nav-icon text-cyan"></i>
+                <span class="nav-label">DEC0Y</span>
+            </a>
+            <a href="#bookmarks" class="bottom-nav-item" data-tab="bookmarks" onclick="switchTab('bookmarks')">
+                <i class="bi bi-lightning-charge-fill nav-icon text-warning"></i>
+                <span class="nav-label">1-Klik</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- MODAL: ACCOUNTS & LOGIN -->
+    <div class="modal fade" id="accountsModal" tabindex="-1" aria-labelledby="accountsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold text-light m-0" id="accountsModalLabel"><i class="bi bi-people-fill me-2 text-primary"></i>Kelola Akun XL</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Nav Tabs -->
+                    <ul class="nav nav-pills nav-fill mb-3" id="accountModalTabs">
+                        <li class="nav-item"><a class="nav-link active py-1 fs-8" href="#" onclick="switchAccountModalTab('list', event)">Akun Tersimpan</a></li>
+                        <li class="nav-item"><a class="nav-link py-1 fs-8" href="#" onclick="switchAccountModalTab('login', event)">+ Tambah Akun Baru</a></li>
+                    </ul>
+
+                    <!-- Sub Tab: Accounts List -->
+                    <div id="subtab-account-list">
+                        <div id="modalAccountsList" class="list-group list-group-flush mb-2">
+                            <div class="p-3 text-center text-muted fs-8"><div class="spinner-border spinner-border-sm me-2"></div>Memuat akun...</div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Tab: Login Prompt -->
+                    <div id="subtab-account-login" class="d-none">
+                        <div id="stepRequestOtp">
+                            <div class="mb-3">
+                                <label class="form-label fs-8 text-muted mb-1">Nomor XL / MSISDN (Format 628xxxx)</label>
+                                <input type="text" id="loginPhoneInput" class="form-control font-monospace form-control-sm" placeholder="6281234567890">
+                                <div class="form-text fs-9 text-muted">Pastikan nomor aktif untuk menerima SMS OTP.</div>
+                            </div>
+                            <button id="btnReqOtp" class="btn btn-primary btn-sm w-100" onclick="requestLoginOtp()">
+                                <i class="bi bi-send me-1"></i> Request OTP via SMS
+                            </button>
+                        </div>
+
+                        <div id="stepSubmitOtp" class="d-none mt-2">
+                            <div class="alert alert-info py-2 px-3 fs-8 mb-3">
+                                OTP telah dikirim ke <b id="otpSentPhone"></b>. Masukkan 6 digit kode OTP:
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fs-8 text-muted mb-1">Kode OTP (6 digit)</label>
+                                <input type="text" id="loginOtpInput" class="form-control text-center font-monospace fs-4 tracking-wider" maxlength="6" placeholder="------">
+                            </div>
+                            <button id="btnSubmitOtp" class="btn btn-success btn-sm w-100 mb-2" onclick="submitLoginOtp()">
+                                <i class="bi bi-check-circle me-1"></i> Verifikasi & Login
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="backToRequestOtp()">
+                                Ganti Nomor
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PACKAGE PURCHASE WORKFLOW (POLISHED) -->
+    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-labelledby="purchaseModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-danger-gradient px-2 py-1 fs-8"><i class="bi bi-bag-check-fill"></i></span>
+                        <h6 class="modal-title fw-bold text-light m-0" id="purchaseModalLabel">Beli Paket</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="purchaseModalBody">
+                    <!-- Package Info Summary Card -->
+                    <div class="card bg-card border mb-3">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div class="min-w-0">
+                                    <h6 class="fw-bold text-bright mb-1 text-truncate" id="modalPkgName">-</h6>
+                                    <div class="d-flex flex-wrap gap-1.5 align-items-center">
+                                        <span class="badge bg-secondary font-monospace fs-9" id="modalPkgValidity">-</span>
+                                        <span class="badge bg-dark border border-secondary font-monospace fs-9" id="modalPkgPoint">0 Poin</span>
+                                    </div>
+                                </div>
+                                <div class="text-end flex-shrink-0">
+                                    <div class="fs-4 fw-bold text-success font-monospace" id="modalPkgPrice">Rp 0</div>
+                                </div>
+                            </div>
+
+                            <!-- Option & Family Code with Copy Button -->
+                            <div class="d-flex flex-column gap-1.5 mt-2.5 pt-2.5 border-top border-secondary">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center fs-9 text-muted mb-0.5">
+                                        <span>OPTION CODE</span>
+                                        <button class="btn btn-xs btn-link text-cyan p-0 text-decoration-none" onclick="copyOptionCode()"><i class="bi bi-clipboard me-1"></i>Copy</button>
+                                    </div>
+                                    <div class="code-display-box">
+                                        <span id="modalPkgCode" class="code-text">-</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center fs-9 text-muted mb-0.5">
+                                        <span>FAMILY CODE</span>
+                                        <button class="btn btn-xs btn-link text-cyan p-0 text-decoration-none" onclick="copyFamilyCode()"><i class="bi bi-clipboard me-1"></i>Copy</button>
+                                    </div>
+                                    <div class="code-display-box">
+                                        <span id="modalPkgFamCode" class="code-text text-muted">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Benefits Badges -->
+                            <div class="mt-2.5 pt-2.5 border-top border-secondary">
+                                <div class="fs-8 fw-semibold text-muted mb-1.5">Rincian Kuota:</div>
+                                <div id="modalPkgBenefits" class="d-flex flex-wrap gap-1.5"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method Selector -->
+                    <div class="mb-3">
+                        <label class="form-label fs-8 fw-bold text-muted text-uppercase tracking-wider mb-2">Metode Pembayaran / Trik:</label>
+                        <div class="row g-2" id="paymentMethodRadios">
+                            <!-- Radio 1: Pulsa -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="balance" checked>
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>💰 Pulsa Reguler</span>
+                                        </div>
+                                        <div class="method-desc">Potong pulsa langsung</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Radio 2: Pulsa + Decoy V2 -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="balance_decoy_v2">
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>🛡️ Pulsa + Decoy V2</span>
+                                            <span class="badge bg-warning text-dark fs-9">POPULER</span>
+                                        </div>
+                                        <div class="method-desc">Bypass token decoy</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Radio 3: Pulsa + Decoy V1 -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="balance_decoy">
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>⚡ Pulsa + Decoy V1</span>
+                                        </div>
+                                        <div class="method-desc">Kombinasi item decoy</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Radio 4: QRIS Direct -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="qris">
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>📱 QRIS Direct</span>
+                                        </div>
+                                        <div class="method-desc">Scan via e-wallet / bank</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Radio 5: QRIS Decoy (+1k) -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="qris_decoy">
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>🎯 QRIS + Decoy (+1K)</span>
+                                        </div>
+                                        <div class="method-desc">QRIS share package bypass</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Radio 6: QRIS Decoy Rp0 -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="qris_decoy0">
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>🎯 QRIS + Decoy (Rp0)</span>
+                                        </div>
+                                        <div class="method-desc">QRIS decoy 0 rupiah</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Radio 7: Pulsa N Kali -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="pulsa_n_times">
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>🔁 Pulsa N Kali</span>
+                                        </div>
+                                        <div class="method-desc">Beli berulang otomatis</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Radio 8: Redeem Points / Loyalty -->
+                            <div class="col-12 col-sm-6">
+                                <label class="payment-method-card">
+                                    <input type="radio" name="payMethod" value="redeem_loyalty">
+                                    <div class="method-info">
+                                        <div class="method-title">
+                                            <span>🎁 Tukar Poin</span>
+                                        </div>
+                                        <div class="method-desc">Tukar poin myRewards</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extra Param: Overwrite Amount & N-Times Loop Settings -->
+                    <div id="extraParamsContainer" class="bg-darker rounded border p-2.5 mb-2">
+                        <div class="row g-2">
+                            <div class="col-12" id="fieldOverwriteAmount">
+                                <label class="form-label fs-9 text-muted mb-1">Overwrite Total Amount (Opsional)</label>
+                                <input type="number" id="purchaseOverwriteAmount" class="form-control form-control-sm font-monospace" placeholder="Biarkan kosong untuk harga default">
+                            </div>
+                            <div class="col-6 d-none" id="fieldNTimes">
+                                <label class="form-label fs-9 text-muted mb-1">Jumlah Kali (N)</label>
+                                <input type="number" id="purchaseNTimes" class="form-control form-control-sm font-monospace" value="3" min="1">
+                            </div>
+                            <div class="col-6 d-none" id="fieldDelay">
+                                <label class="form-label fs-9 text-muted mb-1">Delay (detik)</label>
+                                <input type="number" id="purchaseDelay" class="form-control form-control-sm font-monospace" value="5" min="0">
+                            </div>
+                            <div class="col-12 d-none" id="fieldDestMsisdn">
+                                <label class="form-label fs-9 text-muted mb-1">Nomor Tujuan (628xxxx)</label>
+                                <input type="text" id="purchaseDestMsisdn" class="form-control form-control-sm font-monospace" placeholder="6281234567890">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Purchase Output / QR View -->
+                    <div id="purchaseResultArea" class="d-none mt-2.5"></div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-warning" id="btnBookmarkModal" onclick="bookmarkCurrentPackage()">
+                            <i class="bi bi-star me-1"></i> Bookmark
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary px-3 fw-semibold" id="btnExecutePurchase" onclick="executePackagePurchase()">
+                            <i class="bi bi-bag-check-fill me-1"></i> Beli Sekarang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT AUTO-BUY PRESET -->
+    <div class="modal fade" id="addPresetModal" tabindex="-1" aria-labelledby="addPresetModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark px-2 py-1 fs-8"><i class="bi bi-lightning-charge-fill"></i></span>
+                        <h6 class="modal-title fw-bold text-light m-0" id="addPresetModalLabel">Simpan Preset 1-Klik Auto Buy</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="presetEditId" value="">
+                    
+                    <div class="mb-2.5">
+                        <label class="form-label fs-8 text-muted mb-1">Nama / Label Preset (Opsional)</label>
+                        <input type="text" id="presetLabelInput" class="form-control form-control-sm" placeholder="Contoh: Akrab S 28GB / Booster 50GB">
+                    </div>
+
+                    <div class="mb-2.5">
+                        <label class="form-label fs-8 text-muted mb-1">Family Code (UUID) <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="presetFamCodeInput" class="form-control font-monospace" placeholder="23ddccc0-ac04-4e80-a939-5f5d76f4bc64">
+                            <button class="btn btn-outline-info" type="button" onclick="inspectPresetFamCodeLive()" title="Cek & Autofill Info Family">
+                                <i class="bi bi-search me-1"></i> Cek
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2.5">
+                        <div class="col-6">
+                            <label class="form-label fs-8 text-muted mb-1">Nomor Opsi / Index</label>
+                            <input type="number" id="presetOrderInput" class="form-control form-control-sm font-monospace" value="1" min="1">
+                            <div class="form-text fs-9 text-muted">Urutan paket (1, 2, 3...)</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fs-8 text-muted mb-1">Mode Eksekusi</label>
+                            <select id="presetModeInput" class="form-select form-select-sm fs-8 font-monospace">
+                                <option value="single">Single (1 Opsi Paket)</option>
+                                <option value="batch_loop">Batch Loop (Semua Opsi)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-2.5">
+                        <label class="form-label fs-8 text-muted mb-1">Metode Pembayaran Default</label>
+                        <select id="presetPaymentMethodInput" class="form-select form-select-sm fs-8 font-monospace">
+                            <option value="balance_decoy_v2">🛡️ Pulsa + Decoy V2 (Bypass Token)</option>
+                            <option value="balance_decoy">⚡ Pulsa + Decoy V1</option>
+                            <option value="balance">💰 Pulsa Reguler</option>
+                            <option value="qris_decoy">🎯 QRIS + Decoy (+1K)</option>
+                            <option value="qris_decoy0">🎯 QRIS + Decoy (Rp0)</option>
+                            <option value="qris">📱 QRIS Direct</option>
+                            <option value="redeem_loyalty">🎁 Tukar Poin (Loyalty)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2.5">
+                        <label class="form-label fs-8 text-muted mb-1">Overwrite Total Amount (Opsional)</label>
+                        <input type="number" id="presetOverwriteAmountInput" class="form-control form-control-sm font-monospace" placeholder="Biarkan kosong untuk harga asli">
+                    </div>
+
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="presetIsEnterprise">
+                        <label class="form-check-label fs-8 text-muted" for="presetIsEnterprise">Paket Enterprise / B2B</label>
+                    </div>
+
+                    <div id="presetQuickInspectResult" class="alert alert-dark border border-secondary fs-8 py-2 px-3 mt-2 d-none"></div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-sm btn-warning text-dark fw-semibold" id="btnSavePreset" onclick="saveAutoBuyPreset()">
+                        <i class="bi bi-save me-1"></i> Simpan Preset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AUTO BUY EXECUTION RESULT -->
+    <div class="modal fade" id="autoBuyResultModal" tabindex="-1" aria-labelledby="autoBuyResultModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark px-2 py-1 fs-8"><i class="bi bi-lightning-charge-fill"></i></span>
+                        <h6 class="modal-title fw-bold text-light m-0" id="autoBuyResultModalLabel">Hasil 1-Klik Auto Buy</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="autoBuyResultModalBody">
+                    <div class="text-center p-4"><div class="spinner-border spinner-border-sm me-2"></div>Memproses pembelian 1-klik...</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GOOGLE ACCOUNT PROFILE & CLOUD STORAGE -->
+    <div class="modal fade" id="googleAccountModal" tabindex="-1" aria-labelledby="googleAccountModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-card border border-secondary shadow-lg">
+                <div class="modal-header border-bottom border-secondary py-2.5 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="brand-badge" style="background: #4285F4;"><i class="bi bi-google"></i></span>
+                        <h6 class="modal-title fw-bold text-light m-0" id="googleAccountModalLabel">Google Account & Cloud Storage</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <!-- User Profile Card -->
+                    <div class="text-center mb-3">
+                        <div id="menuModalAvatar" class="d-inline-block mb-2"></div>
+                        <h5 class="fw-bold text-light mb-0" id="menuModalName">-</h5>
+                        <div class="text-muted fs-8 font-monospace" id="menuModalEmail">-</div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-9 px-2.5 py-1 rounded-pill mt-2">
+                            <i class="bi bi-shield-fill-check me-1"></i>Google Account Terverifikasi
+                        </span>
+                    </div>
+
+                    <!-- Cloud Sync Status Info -->
+                    <div id="menuModalSyncStatus"></div>
+
+                    <!-- Account Actions -->
+                    <div class="d-flex flex-column gap-2 mt-3 pt-2 border-top border-secondary">
+                        <button type="button" class="btn btn-outline-light btn-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="window.GoogleAuth.switchAccount()">
+                            <i class="bi bi-arrow-left-right text-cyan"></i>
+                            <span>Ganti Akun (Switch Account)</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="window.GoogleAuth.requestGoogleLogin()">
+                            <i class="bi bi-person-plus-fill"></i>
+                            <span>+ Tambahkan Akun Google Lain</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="window.GoogleAuth.logout()">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Keluar (Logout)</span>
+                        </button>
+                    </div>
+
+                    <!-- Privacy Link -->
+                    <div class="text-center mt-3 pt-2 border-top border-secondary">
+                        <a href="/privacy" target="_blank" class="text-secondary text-decoration-none fs-9 hover-text-cyan">
+                            <i class="bi bi-shield-check me-1"></i>Kebijakan Privasi (Privacy Policy)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- Bootstrap 5.3 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Google Auth & Cloud Storage Modules -->
+    <script src="/static/js/cloud-storage.js?v={{ cache_buster|default('1') }}"></script>
+    <script src="/static/js/google-auth.js?v={{ cache_buster|default('1') }}"></script>
+    <!-- App Custom Scripts -->
+    <script src="/static/js/app.js?v={{ cache_buster|default('1') }}"></script>
+    <script src="/static/js/terminal.js?v={{ cache_buster|default('1') }}"></script>
+</body>
+</html>

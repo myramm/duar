@@ -11,3 +11,6 @@ refresh-tokens*
 ax.fp
 bookmark.json
 active.number
+.vercel
+user_data/
+scans/

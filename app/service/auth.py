@@ -1,214 +1,227 @@
 import os
 import json
 import time
+from typing import Dict, List, Optional
 from app.client.ciam import get_new_token
 from app.client.engsel import get_profile
 from app.util import ensure_api_key
 
+_user_auth_registry: Dict[str, "Auth"] = {}
+
+def get_storage_dir(user_id: Optional[str] = None) -> str:
+    """Returns the storage directory for the given user_id."""
+    if not user_id:
+        return "."
+    # Sanitize user_id for filesystem safety
+    safe_uid = "".join(c for c in str(user_id) if c.isalnum() or c in ("-", "_"))
+    base_dir = os.path.join(".", "user_data", safe_uid)
+    try:
+        os.makedirs(base_dir, exist_ok=True)
+        return base_dir
+    except OSError:
+        tmp_dir = os.path.join("/tmp", "duar_users", safe_uid)
+        os.makedirs(tmp_dir, exist_ok=True)
+        return tmp_dir
+
 class Auth:
-    _instance_ = None
-    _initialized_ = False
+    def __init__(self, user_id: Optional[str] = None):
+        self.user_id = user_id
+        self.api_key = ensure_api_key()
+        self.storage_dir = get_storage_dir(user_id)
+        self.tokens_file = os.path.join(self.storage_dir, "refresh-tokens.json")
+        self.active_number_file = os.path.join(self.storage_dir, "active.number")
+        
+        self.refresh_tokens: List[dict] = []
+        self.active_user: Optional[dict] = None
+        self.last_refresh_time: Optional[float] = None
 
-    api_key = ""
+        if os.path.exists(self.tokens_file):
+            self.load_tokens()
+        else:
+            self._save_tokens_file([])
 
-    refresh_tokens = []
-    # Format of refresh_tokens:
-    # [
-        # {
-            # "number": int,
-            # "subscriber_id": str,
-            # "subscription_type": str,
-            # "refresh_token": str
-        # }
-    # ]
+        self.load_active_number()
+        self.last_refresh_time = time.time()
 
-    active_user = None
-    # {
-    #     "number": int,
-    #     "subscriber_id": str,
-    #     "subscription_type": str,
-    #     "tokens": {
-    #         "refresh_token": str,
-    #         "access_token": str,
-    #         "id_token": str
-	#     }
-    # }
-    
-    last_refresh_time = None
-    
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance_:
-            cls._instance_ = super().__new__(cls)
-        return cls._instance_
-    
-    def __init__(self):
-        if not self._initialized_:
-            self.api_key = ensure_api_key()
-            
-            if os.path.exists("refresh-tokens.json"):
-                self.load_tokens()
-            else:
-                # Create empty file
-                with open("refresh-tokens.json", "w", encoding="utf-8") as f:
-                    json.dump([], f, indent=4)
+    def _save_tokens_file(self, tokens_data: list):
+        try:
+            with open(self.tokens_file, "w", encoding="utf-8") as f:
+                json.dump(tokens_data, f, indent=4)
+        except OSError:
+            if self.user_id:
+                safe_uid = "".join(c for c in str(self.user_id) if c.isalnum() or c in ("-", "_"))
+                tmp_dir = os.path.join("/tmp", "duar_users", safe_uid)
+                os.makedirs(tmp_dir, exist_ok=True)
+                self.tokens_file = os.path.join(tmp_dir, "refresh-tokens.json")
+                with open(self.tokens_file, "w", encoding="utf-8") as f:
+                    json.dump(tokens_data, f, indent=4)
 
-            # Select active user from file if available
-            self.load_active_number()
-            self.last_refresh_time = int(time.time())
-
-            self._initialized_ = True
-            
     def load_tokens(self):
-        with open("refresh-tokens.json", "r", encoding="utf-8") as f:
-            refresh_tokens = json.load(f)
-            
-            if len(refresh_tokens) !=  0:
-                self.refresh_tokens = []
-
-            # Validate and load tokens
-            for rt in refresh_tokens:
-                if "number" in rt and "refresh_token" in rt:
-                    self.refresh_tokens.append(rt)
-                else:
-                    print(f"Invalid token entry: {rt}")
+        if not os.path.exists(self.tokens_file):
+            self.refresh_tokens = []
+            return
+        try:
+            with open(self.tokens_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                valid = []
+                if isinstance(data, list):
+                    for rt in data:
+                        if isinstance(rt, dict) and "number" in rt and "refresh_token" in rt:
+                            valid.append(rt)
+                self.refresh_tokens = valid
+        except Exception as e:
+            print(f"Error loading tokens for user {self.user_id}: {e}")
+            self.refresh_tokens = []
 
     def add_refresh_token(self, number: int, refresh_token: str):
-        # Check if number already exist, if yes, replace it, if not append
         existing = next((rt for rt in self.refresh_tokens if rt["number"] == number), None)
         if existing:
             existing["refresh_token"] = refresh_token
         else:
-            tokens = get_new_token(self.api_key, refresh_token, "")
-            profile_data = get_profile(self.api_key, tokens["access_token"], tokens["id_token"])
-            sub_id = profile_data["profile"]["subscriber_id"]
-            sub_type = profile_data["profile"]["subscription_type"]
+            try:
+                tokens = get_new_token(self.api_key, refresh_token, "")
+                profile_data = get_profile(self.api_key, tokens["access_token"], tokens["id_token"])
+                sub_id = profile_data.get("profile", {}).get("subscriber_id", "")
+                sub_type = profile_data.get("profile", {}).get("subscription_type", "PREPAID")
 
-            self.refresh_tokens.append({
-                "number": int(number),
-                "subscriber_id": sub_id,
-                "subscription_type": sub_type,
-                "refresh_token": refresh_token
-            })
-        
-        # Save to file
+                self.refresh_tokens.append({
+                    "number": int(number),
+                    "subscriber_id": sub_id,
+                    "subscription_type": sub_type,
+                    "refresh_token": refresh_token
+                })
+            except Exception as e:
+                print(f"Error fetching profile on add_refresh_token: {e}")
+                self.refresh_tokens.append({
+                    "number": int(number),
+                    "subscriber_id": "",
+                    "subscription_type": "PREPAID",
+                    "refresh_token": refresh_token
+                })
+
         self.write_tokens_to_file()
-
-        # Set active user to newly added
         self.set_active_user(number)
-            
+
     def remove_refresh_token(self, number: int):
         self.refresh_tokens = [rt for rt in self.refresh_tokens if rt["number"] != number]
-        
-        # Save to file
-        with open("refresh-tokens.json", "w", encoding="utf-8") as f:
-            json.dump(self.refresh_tokens, f, indent=4)
-        
-        # If the removed user was the active user, select a new active user if available
+        self.write_tokens_to_file()
+
         if self.active_user and self.active_user["number"] == number:
-            # Select the first user as active user by default
             if len(self.refresh_tokens) != 0:
                 first_rt = self.refresh_tokens[0]
-                tokens = get_new_token(self.api_key, first_rt["refresh_token"], first_rt.get("subscriber_id", ""))
-                if tokens:
-                    self.set_active_user(first_rt["number"])
+                self.set_active_user(first_rt["number"])
             else:
-                input("No users left. Press Enter to continue...")
                 self.active_user = None
+                self.write_active_number()
 
-    def set_active_user(self, number: int):
-        # Get refresh token for the number from refresh_tokens
+    def set_active_user(self, number: int) -> bool:
         rt_entry = next((rt for rt in self.refresh_tokens if rt["number"] == number), None)
         if not rt_entry:
-            print(f"No refresh token found for number: {number}")
-            input("Press Enter to continue...")
             return False
 
-        tokens = get_new_token(self.api_key, rt_entry["refresh_token"], rt_entry.get("subscriber_id", ""))
-        if not tokens:
-            print(f"Failed to get tokens for number: {number}. The refresh token might be invalid or expired.")
-            input("Press Enter to continue...")
+        try:
+            tokens = get_new_token(self.api_key, rt_entry["refresh_token"], rt_entry.get("subscriber_id", ""))
+            if not tokens:
+                return False
+
+            profile_data = get_profile(self.api_key, tokens["access_token"], tokens["id_token"])
+            subscriber_id = profile_data.get("profile", {}).get("subscriber_id", "")
+            subscription_type = profile_data.get("profile", {}).get("subscription_type", "PREPAID")
+
+            self.active_user = {
+                "number": int(number),
+                "subscriber_id": subscriber_id,
+                "subscription_type": subscription_type,
+                "tokens": tokens
+            }
+
+            rt_entry["subscriber_id"] = subscriber_id
+            rt_entry["subscription_type"] = subscription_type
+            rt_entry["refresh_token"] = tokens.get("refresh_token", rt_entry["refresh_token"])
+            self.write_tokens_to_file()
+            self.last_refresh_time = time.time()
+            self.write_active_number()
+            return True
+        except Exception as e:
+            print(f"Error setting active user {number}: {e}")
             return False
 
-        profile_data = get_profile(self.api_key, tokens["access_token"], tokens["id_token"])
-        subscriber_id = profile_data["profile"]["subscriber_id"]
-        subscription_type = profile_data["profile"]["subscription_type"]
-
-        self.active_user = {
-            "number": int(number),
-            "subscriber_id": subscriber_id,
-            "subscription_type": subscription_type,
-            "tokens": tokens
-        }
-        
-        # Update refresh token entry with subscriber_id and subscription_type
-        rt_entry["subscriber_id"] = subscriber_id
-        rt_entry["subscription_type"] = subscription_type
-        
-        # Update refresh token. The real client app do this, not sure why cz refresh token should still be valid
-        rt_entry["refresh_token"] = tokens["refresh_token"]
-        self.write_tokens_to_file()
-        
-        self.last_refresh_time = int(time.time())
-        
-        # Save active number to file
-        self.write_active_number()
-
-    def renew_active_user_token(self):
-        if self.active_user:
-            tokens = get_new_token(self.api_key, self.active_user["tokens"]["refresh_token"], self.active_user["subscriber_id"])
-            if tokens:
-                self.active_user["tokens"] = tokens
-                self.last_refresh_time = int(time.time())
-                self.add_refresh_token(self.active_user["number"], self.active_user["tokens"]["refresh_token"])
-                
-                print("Active user token renewed successfully.")
-                return True
-            else:
-                print("Failed to renew active user token.")
-                input("Press Enter to continue...")
-        else:
-            print("No active user set or missing refresh token.")
-            input("Press Enter to continue...")
+    def renew_active_user_token(self) -> bool:
+        if self.active_user and "tokens" in self.active_user and self.active_user["tokens"].get("refresh_token"):
+            try:
+                tokens = get_new_token(
+                    self.api_key,
+                    self.active_user["tokens"]["refresh_token"],
+                    self.active_user.get("subscriber_id", "")
+                )
+                if tokens:
+                    self.active_user["tokens"] = tokens
+                    self.last_refresh_time = time.time()
+                    self.add_refresh_token(self.active_user["number"], self.active_user["tokens"]["refresh_token"])
+                    return True
+            except Exception as e:
+                print(f"Error renewing token: {e}")
         return False
-    
-    def get_active_user(self):
+
+    def get_active_user(self) -> Optional[dict]:
         if not self.active_user:
-            # Choose the first user if available
             if len(self.refresh_tokens) != 0:
                 first_rt = self.refresh_tokens[0]
-                tokens = get_new_token(self.api_key, first_rt["refresh_token"], first_rt.get("subscriber_id", ""))
-                if tokens:
-                    self.set_active_user(first_rt["number"])
-            return None
-        
-        if self.last_refresh_time is None or (int(time.time()) - self.last_refresh_time) > 300:
+                self.set_active_user(first_rt["number"])
+            return self.active_user
+
+        if self.last_refresh_time is None or (time.time() - self.last_refresh_time) > 300:
             self.renew_active_user_token()
             self.last_refresh_time = time.time()
-        
+
         return self.active_user
-    
-    def get_active_tokens(self) -> dict | None:
+
+    def get_active_tokens(self) -> Optional[dict]:
         active_user = self.get_active_user()
         return active_user["tokens"] if active_user else None
-    
+
     def write_tokens_to_file(self):
-        with open("refresh-tokens.json", "w", encoding="utf-8") as f:
-            json.dump(self.refresh_tokens, f, indent=4)
-    
+        self._save_tokens_file(self.refresh_tokens)
+
     def write_active_number(self):
         if self.active_user:
-            with open("active.number", "w", encoding="utf-8") as f:
-                f.write(str(self.active_user["number"]))
+            try:
+                with open(self.active_number_file, "w", encoding="utf-8") as f:
+                    f.write(str(self.active_user["number"]))
+            except OSError:
+                if self.user_id:
+                    safe_uid = "".join(c for c in str(self.user_id) if c.isalnum() or c in ("-", "_"))
+                    tmp_dir = os.path.join("/tmp", "duar_users", safe_uid)
+                    os.makedirs(tmp_dir, exist_ok=True)
+                    self.active_number_file = os.path.join(tmp_dir, "active.number")
+                    with open(self.active_number_file, "w", encoding="utf-8") as f:
+                        f.write(str(self.active_user["number"]))
         else:
-            if os.path.exists("active.number"):
-                os.remove("active.number")
-    
-    def load_active_number(self):
-        if os.path.exists("active.number"):
-            with open("active.number", "r", encoding="utf-8") as f:
-                number_str = f.read().strip()
-                if number_str.isdigit():
-                    number = int(number_str)
-                    self.set_active_user(number)
+            if os.path.exists(self.active_number_file):
+                try:
+                    os.remove(self.active_number_file)
+                except OSError:
+                    pass
 
-AuthInstance = Auth()
+    def load_active_number(self):
+        if os.path.exists(self.active_number_file):
+            try:
+                with open(self.active_number_file, "r", encoding="utf-8") as f:
+                    number_str = f.read().strip()
+                    if number_str.isdigit():
+                        number = int(number_str)
+                        self.set_active_user(number)
+            except Exception:
+                pass
+
+
+def get_auth_for_user(user_id: Optional[str] = None) -> Auth:
+    """Get or create an isolated Auth instance for a specific user ID."""
+    key = str(user_id).strip() if user_id else "__default__"
+    if key not in _user_auth_registry:
+        _user_auth_registry[key] = Auth(user_id=user_id if user_id else None)
+    return _user_auth_registry[key]
+
+
+# Global fallback instance for CLI compatibility
+AuthInstance = get_auth_for_user(None)

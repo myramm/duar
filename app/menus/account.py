@@ -22,12 +22,12 @@ def login_prompt(api_key: str):
 
     if not phone_number.startswith("628") or len(phone_number) < 10 or len(phone_number) > 14:
         print("Nomor tidak valid. Pastikan nomor diawali dengan '628' dan memiliki panjang yang benar.")
-        return None
+        return None, None
 
     try:
         subscriber_id = get_otp(phone_number)
         if not subscriber_id:
-            return None
+            return None, None
         print("OTP Berhasil dikirim ke nomor Anda.")
         
         try_count = 5
